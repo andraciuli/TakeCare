@@ -1,0 +1,42 @@
+<!-- Main container to hold the map and sidebar -->
+<div class="container">
+    <!-- The DIV that will contain the map -->
+    <div #mapViewNode class="map-view"></div>
+</div>
+
+<!-- Place Search Selector -->
+<div class="place-selector">
+    <label for="placeCategory">Find places:</label>
+    <select id="placeCategory" (change)="onCategoryChange($event)">
+        <option value="Coffee shop">Coffee shop</option>
+        <option value="Parks and Outdoors">Parks and Outdoors</option>
+        <option value="Gas station">Gas station</option>
+        <option value="Food">Food</option>
+        <option value="Hotel">Hotel</option>
+        <option value="Restaurant">Restaurant</option>
+    </select>
+    <button (click)="clearPlaces()">Clear Places</button>
+</div>
+
+<!-- Firebase Controls -->
+<div class="firebase-controls">
+    <h3>Firebase Integration</h3>
+    <button 
+        (click)="connectToFirebase()" 
+        [disabled]="firebaseConnected"
+        [class.connected]="firebaseConnected">
+        {{ firebaseConnected ? 'Connected' : 'Connect' }}
+    </button>
+    <button 
+        (click)="addFirebaseEntry()" 
+        [disabled]="!firebaseConnected">
+        Add Entry
+    </button>
+    <div class="firebase-status">
+        <p>Status: {{ firebaseConnected ? 'Connected' : 'Not Connected' }}</p>
+        <p>Entries: {{ firebaseEntries.length }}</p>
+    </div>
+</div>
+
+<!-- Floating Action Button (FAB) -->
+<button class="fab" (click)="clearRouter()">x</button>

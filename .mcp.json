@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp",
+      "env": {
+        "SUPABASE_URL": "https://vcumpslpsrvsvfkwovoj.supabase.co",
+        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjdW1wc2xwc3J2c3Zma3dvdm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzNzg0NTEsImV4cCI6MjA3OTk1NDQ1MX0.FzIwlZD7QFFsB240wgNb52iLPStLD798OfU8A5KrBN8"
+      }
+    }
+  }
+}
