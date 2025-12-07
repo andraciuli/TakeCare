@@ -10,6 +10,11 @@ export default function AnimalsPage() {
   const [animals, setAnimals] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [favorites, setFavorites] = useState<Set<string>>(new Set())
+  const [adoptionRequests, setAdoptionRequests] = useState<Set<string>>(new Set())
+  const [showAdoptModal, setShowAdoptModal] = useState(false)
+  const [selectedAnimal, setSelectedAnimal] = useState<any>(null)
+  const [adoptionMessage, setAdoptionMessage] = useState('')
   const { user } = useAuth()
 
   useEffect(() => {
@@ -18,6 +23,27 @@ export default function AnimalsPage() {
         const { data, error } = await supabase.from('animals').select('*')
         if (error) throw error
         setAnimals(data || [])
+
+        // Fetch user's favorites and adoption requests if authenticated
+        if (user) {
+          const { data: favoritesData } = await supabase
+            .from('favorites')
+            .select('animal_id')
+            .eq('user_id', user.id)
+
+          if (favoritesData) {
+            setFavorites(new Set(favoritesData.map(f => f.animal_id)))
+          }
+
+          const { data: requestsData } = await supabase
+            .from('adoption_requests')
+            .select('animal_id')
+            .eq('user_id', user.id)
+
+          if (requestsData) {
+            setAdoptionRequests(new Set(requestsData.map(r => r.animal_id)))
+          }
+        }
       } catch (err: any) {
         setError(err.message)
       } finally {
@@ -25,7 +51,78 @@ export default function AnimalsPage() {
       }
     }
     fetchAnimals()
-  }, [])
+  }, [user])
+
+  async function handleToggleFavorite(animalId: string) {
+    if (!user) return
+
+    const isFavorited = favorites.has(animalId)
+
+    try {
+      if (isFavorited) {
+        // Remove from favorites
+        await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('animal_id', animalId)
+
+        // Update local state
+        setFavorites(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(animalId)
+          return newSet
+        })
+      } else {
+        // Add to favorites
+        await supabase
+          .from('favorites')
+          .insert({ user_id: user.id, animal_id: animalId })
+
+        // Update local state
+        setFavorites(prev => new Set(prev).add(animalId))
+      }
+    } catch (error: any) {
+      alert('Error updating favorite: ' + error.message)
+    }
+  }
+
+  function handleRequestAdoption(animal: any) {
+    // Check if already requested
+    if (adoptionRequests.has(animal.id)) {
+      alert('You have already requested to adopt this animal')
+      return
+    }
+
+    setSelectedAnimal(animal)
+    setShowAdoptModal(true)
+  }
+
+  async function handleSubmitAdoption() {
+    if (!user || !selectedAnimal) return
+
+    try {
+      const { error } = await supabase
+        .from('adoption_requests')
+        .insert({
+          user_id: user.id,
+          animal_id: selectedAnimal.id,
+          status: 'pending',
+          message: adoptionMessage || null
+        })
+
+      if (error) throw error
+
+      // Update local state
+      setAdoptionRequests(prev => new Set(prev).add(selectedAnimal.id))
+      setShowAdoptModal(false)
+      setSelectedAnimal(null)
+      setAdoptionMessage('')
+      alert('Adoption request submitted successfully!')
+    } catch (error: any) {
+      alert('Error submitting request: ' + error.message)
+    }
+  }
 
   if (loading) {
     return (
@@ -90,16 +187,19 @@ export default function AnimalsPage() {
                 {user ? (
                   <div className={styles.actions}>
                     <button
-                      className={styles.favoriteButton}
-                      onClick={() => alert('Favorite feature coming soon!')}
+                      className={`${styles.favoriteButton} ${
+                        favorites.has(animal.id) ? styles.favoriteButtonActive : ''
+                      }`}
+                      onClick={() => handleToggleFavorite(animal.id)}
                     >
-                      ♥ Favorite
+                      {favorites.has(animal.id) ? '♥ Favorited' : '♡ Favorite'}
                     </button>
                     <button
                       className={styles.adoptButton}
-                      onClick={() => alert('Adoption request feature coming soon!')}
+                      onClick={() => handleRequestAdoption(animal)}
+                      disabled={adoptionRequests.has(animal.id)}
                     >
-                      Request Adoption
+                      {adoptionRequests.has(animal.id) ? 'Request Sent' : 'Request Adoption'}
                     </button>
                   </div>
                 ) : (
@@ -115,6 +215,43 @@ export default function AnimalsPage() {
         )}
         </div>
       </div>
+
+      {/* Adoption Request Modal */}
+      {showAdoptModal && selectedAnimal && (
+        <div className={styles.modalOverlay} onClick={() => setShowAdoptModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button
+              className={styles.modalClose}
+              onClick={() => setShowAdoptModal(false)}
+            >
+              ×
+            </button>
+            <h2>Request Adoption: {selectedAnimal.name}</h2>
+            <p>Would you like to include a message with your request?</p>
+            <textarea
+              className={styles.messageInput}
+              placeholder="Tell us why you'd like to adopt this pet... (optional)"
+              maxLength={200}
+              value={adoptionMessage}
+              onChange={(e) => setAdoptionMessage(e.target.value)}
+            />
+            <div className={styles.modalActions}>
+              <button
+                className={styles.modalCancel}
+                onClick={() => setShowAdoptModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.modalSubmit}
+                onClick={handleSubmitAdoption}
+              >
+                Submit Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
