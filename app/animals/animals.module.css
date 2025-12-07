@@ -277,3 +277,21 @@
 .modalSubmit:hover {
   background: #0051cc;
 }
+
+.shelterInfo {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.shelterName {
+  margin: 0.25rem 0;
+  color: #0070f3;
+  font-size: 0.9rem;
+}
+
+.shelterAddress {
+  margin: 0.25rem 0;
+  color: #999;
+  font-size: 0.875rem;
+}

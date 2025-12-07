@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/AuthContext'
 import styles from './Navbar.module.css'
 
 export default function Navbar() {
-  const { user, signOut, loading } = useAuth()
+  const { user, userRole, signOut, loading } = useAuth()
 
   return (
     <nav className={styles.nav}>
@@ -19,6 +19,11 @@ export default function Navbar() {
         <Link href="/map" className={styles.navLink}>
           Map
         </Link>
+        {userRole === 'shelter_admin' && (
+          <Link href="/dashboard" className={styles.navLink}>
+            Dashboard
+          </Link>
+        )}
       </div>
 
       <div className={styles.navRight}>

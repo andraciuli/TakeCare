@@ -12,6 +12,7 @@ export default function AnimalsPage() {
   const [error, setError] = useState<string | null>(null)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [adoptionRequests, setAdoptionRequests] = useState<Set<string>>(new Set())
+  const [requestStatuses, setRequestStatuses] = useState<Map<string, string>>(new Map())
   const [showAdoptModal, setShowAdoptModal] = useState(false)
   const [selectedAnimal, setSelectedAnimal] = useState<any>(null)
   const [adoptionMessage, setAdoptionMessage] = useState('')
@@ -20,7 +21,17 @@ export default function AnimalsPage() {
   useEffect(() => {
     async function fetchAnimals() {
       try {
-        const { data, error } = await supabase.from('animals').select('*')
+        const { data, error } = await supabase
+          .from('animals')
+          .select(`
+            *,
+            shelters (
+              id,
+              name,
+              address,
+              phone
+            )
+          `)
         if (error) throw error
         setAnimals(data || [])
 
@@ -37,11 +48,18 @@ export default function AnimalsPage() {
 
           const { data: requestsData } = await supabase
             .from('adoption_requests')
-            .select('animal_id')
+            .select('animal_id, status')
             .eq('user_id', user.id)
 
           if (requestsData) {
-            setAdoptionRequests(new Set(requestsData.map(r => r.animal_id)))
+            // Only add pending requests to the set (so rejected ones can be re-requested)
+            const pendingRequests = requestsData.filter(r => r.status === 'pending')
+            setAdoptionRequests(new Set(pendingRequests.map(r => r.animal_id)))
+
+            // Store all statuses for feedback
+            const statusMap = new Map()
+            requestsData.forEach(r => statusMap.set(r.animal_id, r.status))
+            setRequestStatuses(statusMap)
           }
         }
       } catch (err: any) {
@@ -88,9 +106,19 @@ export default function AnimalsPage() {
   }
 
   function handleRequestAdoption(animal: any) {
-    // Check if already requested
+    // Check if already has pending request
     if (adoptionRequests.has(animal.id)) {
       alert('You have already requested to adopt this animal')
+      return
+    }
+
+    // Show feedback for rejected/approved requests
+    const status = requestStatuses.get(animal.id)
+    if (status === 'rejected') {
+      const retry = confirm('Your previous request was declined. Would you like to request again?')
+      if (!retry) return
+    } else if (status === 'approved') {
+      alert('Your request was approved! Contact the shelter for next steps.')
       return
     }
 
@@ -175,6 +203,20 @@ export default function AnimalsPage() {
                 {animal.description && (
                   <p className={styles.description}>{animal.description}</p>
                 )}
+
+                {animal.shelters && (
+                  <div className={styles.shelterInfo}>
+                    <p className={styles.shelterName}>
+                      <strong>Shelter:</strong> {animal.shelters.name}
+                    </p>
+                    {animal.shelters.address && (
+                      <p className={styles.shelterAddress}>
+                        {animal.shelters.address}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <span
                   className={`${styles.badge} ${
                     animal.status === 'available' ? styles.badgeAvailable : styles.badgeAdopted
@@ -199,7 +241,13 @@ export default function AnimalsPage() {
                       onClick={() => handleRequestAdoption(animal)}
                       disabled={adoptionRequests.has(animal.id)}
                     >
-                      {adoptionRequests.has(animal.id) ? 'Request Sent' : 'Request Adoption'}
+                      {adoptionRequests.has(animal.id)
+                        ? 'Request Pending'
+                        : requestStatuses.get(animal.id) === 'rejected'
+                        ? 'Request Again'
+                        : requestStatuses.get(animal.id) === 'approved'
+                        ? 'Approved!'
+                        : 'Request Adoption'}
                     </button>
                   </div>
                 ) : (

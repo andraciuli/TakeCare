@@ -1,34 +1,14 @@
 'use client'
 import Link from 'next/link'
-import { useAuth } from '@/lib/AuthContext'
+import Navbar from '@/components/Navbar'
 import styles from './home.module.css'
 
 export default function HomePage() {
-  const { user, signOut, loading } = useAuth()
-
   return (
-    <main className={styles.main}>
-      <nav className={styles.nav}>
-        <div className={styles.logo}>TakeCare</div>
-        <div className={styles.navRight}>
-          {loading ? (
-            <span className={styles.userEmail}>Loading...</span>
-          ) : user ? (
-            <>
-              <span className={styles.userEmail}>{user.email}</span>
-              <button onClick={() => signOut()} className={styles.logoutButton}>
-                Logout
-              </button>
-            </>
-          ) : (
-            <Link href="/auth" className={styles.loginLink}>
-              Login
-            </Link>
-          )}
-        </div>
-      </nav>
-
-      <div className={styles.content}>
+    <>
+      <Navbar />
+      <main className={styles.main}>
+        <div className={styles.content}>
         <div className={styles.hero}>
           <h1 className={styles.title}>TakeCare</h1>
           <p className={styles.subtitle}>
@@ -44,6 +24,7 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-    </main>
+      </main>
+    </>
   )
 }

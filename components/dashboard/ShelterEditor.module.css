@@ -1,0 +1,133 @@
+.container {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.editButton {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 2px solid #0070f3;
+  color: #0070f3;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.editButton:hover {
+  background: #eff6ff;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.detailRow {
+  display: flex;
+  gap: 1rem;
+}
+
+.detailRow .label {
+  font-weight: 500;
+  min-width: 120px;
+  color: #666;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formGroup label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.input,
+.textarea {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+.textarea {
+  resize: vertical;
+}
+
+.errorMessage {
+  padding: 0.75rem;
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.cancelButton,
+.saveButton {
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cancelButton {
+  background: white;
+  border: 2px solid #ddd;
+  color: #333;
+}
+
+.cancelButton:hover {
+  background: #f5f5f5;
+}
+
+.saveButton {
+  background: #0070f3;
+  color: white;
+  border: none;
+}
+
+.saveButton:hover {
+  background: #0051cc;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}

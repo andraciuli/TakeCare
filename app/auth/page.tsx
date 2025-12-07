@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
+import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import styles from './auth.module.css'
 
@@ -8,10 +9,11 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [selectedRole, setSelectedRole] = useState<'adopter' | 'shelter_admin'>('adopter')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const { signIn, signUp } = useAuth()
+  const { signIn, signUp, refreshUserData } = useAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,16 +23,59 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
+        // Login flow
         const { error } = await signIn(email, password)
         if (error) throw error
-        router.push('/')
+
+        // Fetch user role to determine redirect
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+
+          if (userData?.role === 'shelter_admin') {
+            // Check if they have a shelter
+            const { data: shelterData } = await supabase
+              .from('shelters')
+              .select('id')
+              .eq('admin_id', user.id)
+              .single()
+
+            router.push(shelterData ? '/dashboard' : '/shelter/create')
+          } else {
+            router.push('/')
+          }
+        }
       } else {
+        // Signup flow
         const { error } = await signUp(email, password)
         if (error) throw error
+
         // Auto login after signup
         const { error: loginError } = await signIn(email, password)
         if (loginError) throw loginError
-        router.push('/')
+
+        // Update user role if shelter_admin
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user && selectedRole === 'shelter_admin') {
+          await supabase
+            .from('users')
+            .update({ role: 'shelter_admin' })
+            .eq('id', user.id)
+
+          // Refresh auth context to get updated role
+          await refreshUserData()
+        }
+
+        // Redirect based on role
+        if (selectedRole === 'shelter_admin') {
+          router.push('/shelter/create')
+        } else {
+          router.push('/')
+        }
       }
     } catch (err: any) {
       // Show user-friendly error messages
@@ -66,7 +111,7 @@ export default function AuthPage() {
             />
           </div>
 
-          <div className={styles.formGroupLast}>
+          <div className={styles.formGroup}>
             <label className={styles.label}>Password</label>
             <input
               type="password"
@@ -77,6 +122,32 @@ export default function AuthPage() {
               className={styles.input}
             />
           </div>
+
+          {!isLogin && (
+            <div className={styles.formGroupLast}>
+              <label className={styles.label}>I want to:</label>
+              <div className={styles.radioGroup}>
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    value="adopter"
+                    checked={selectedRole === 'adopter'}
+                    onChange={() => setSelectedRole('adopter')}
+                  />
+                  <span>Adopt a pet</span>
+                </label>
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    value="shelter_admin"
+                    checked={selectedRole === 'shelter_admin'}
+                    onChange={() => setSelectedRole('shelter_admin')}
+                  />
+                  <span>Manage a shelter</span>
+                </label>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className={styles.errorMessage}>
