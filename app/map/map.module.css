@@ -1,37 +1,92 @@
 .container {
+  /* Asigură că harta ocupă spațiul rămas */
   height: calc(100vh - 60px);
   display: flex;
   flex-direction: column;
 }
 
 .header {
+  /* Containerul principal al butoanelor și titlului */
   padding: 1rem;
   background: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  /* === MODIFICARE CHEIE AICI: Flexbox pentru aliniere === */
+  display: flex;
+  flex-direction: column; /* Inițial, elementele stau pe coloană */
+  align-items: flex-start; /* Alinierea la stânga */
+  gap: 8px; /* Spațiu între titlu/buton și subtitlu */
 }
 
 .title {
   font-size: 1.5rem;
   font-weight: bold;
+  margin: 0; /* Elimină marginile implicite */
 }
+
+/* === NOU CONTAINER PENTRU TITLU ȘI BUTON ÎN ACELAȘI RÂND === */
+/* Acest stil nu exista înainte, dar este util pentru grupare */
+.titleContainer {
+    display: flex;
+    align-items: center; /* Aliniere verticală */
+    justify-content: space-between; /* Spațiu între titlu și buton */
+    width: 100%; /* Ocupă lățimea maximă în interiorul header-ului */
+    margin-bottom: 5px; 
+}
+/* Notă: Va trebui să înfășurați titlul și butonul într-un div cu clasa .titleContainer în JSX */
 
 .subtitle {
   font-size: 0.875rem;
   color: #666;
+  margin: 0;
 }
 
 .mapView {
   flex: 1;
 }
 
-.loading {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* === STILURI ÎMBUNĂTĂȚITE PENTRU BUTON === */
+
+.toggleButton {
+    /* Mărime și formă */
+    padding: 8px 15px; /* Spațiu interior mai mic pentru a se încadra mai bine în header */
+    font-size: 14px;
+    font-weight: 600; 
+    border: none;
+    border-radius: 6px; 
+    
+    /* Culori și fundal */
+    color: #ffffff; 
+    background-color: #007bff; 
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Umbră subtilă */
+    
+    /* Tranziții */
+    transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
 }
 
-.error {
+/* Efectul la trecerea mouse-ului */
+.toggleButton:hover:not(:disabled) {
+    background-color: #0056b3; 
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15); 
+}
+
+/* Efectul la apăsare (pentru senzația de "click") */
+.toggleButton:active:not(:disabled) {
+    transform: translateY(1px); 
+}
+
+/* Stil pentru starea dezactivată */
+.toggleButton:disabled {
+    background-color: #ced4da; 
+    color: #6c757d; 
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 0.8;
+}
+
+/* Stiluri de stare */
+.loading, .error {
   min-height: 100vh;
   display: flex;
   align-items: center;
