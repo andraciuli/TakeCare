@@ -19,6 +19,9 @@ export default function Navbar() {
         <Link href="/map" className={styles.navLink}>
           Map
         </Link>
+        <Link href="/feed" className={styles.navLink}>
+          Feed
+        </Link>
         {userRole === 'shelter_admin' && (
           <Link href="/dashboard" className={styles.navLink}>
             Dashboard
