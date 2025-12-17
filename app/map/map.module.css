@@ -85,6 +85,8 @@
     opacity: 0.8;
 }
 
+/* routing button styles removed */
+
 /* Stiluri de stare */
 .loading, .error {
   min-height: 100vh;

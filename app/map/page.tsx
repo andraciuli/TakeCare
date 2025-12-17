@@ -134,6 +134,8 @@ export default function MapPage() {
     setShowAllShelters(prev => !prev);
   }
 
+  // (routing UI removed)
+
   // Initialize map and apply filtering
   useEffect(() => {
     // Distruge harta la fiecare rulare a efectului, pentru a preveni suprapunerea
@@ -172,9 +174,11 @@ export default function MapPage() {
           basemap: 'streets-vector'
         })
 
-        // Add graphics layer
+        // Add graphics layer for shelters
         const graphicsLayer = new GraphicsLayer()
         map.add(graphicsLayer)
+
+  // (no route layer - routing UI removed)
 
         // ------------------------------------------
         // APLICARE FILTRARE/COMUTARE
@@ -182,8 +186,8 @@ export default function MapPage() {
         let sheltersToDisplay = shelters;
         let message = '';
         
-        let initialCenter: [number, number];
-        let initialZoom: number;
+       let initialCenter: [number, number] = [25.0, 45.5]; 
+       let initialZoom: number = 7;
 
         if (showAllShelters || !userLocation) {
             // Cazul 1: Arată tot (sau nu avem locație pentru filtrare)
@@ -254,7 +258,7 @@ export default function MapPage() {
         await view.when()
         console.log(`ArcGIS map loaded. View: ${showAllShelters ? 'All' : 'Filtered'}`);
 
-        // Add shelter markers based on current list (filtered or all)
+  // Add shelter markers based on current list (filtered or all)
         sheltersToDisplay.forEach(shelter => {
           const point = new Point({
             longitude: shelter.longitude,
@@ -272,6 +276,7 @@ export default function MapPage() {
                 width: 2
               }
             } as any,
+            // Ensure the id and common fields are present explicitly so popup actions can read them
             attributes: shelter,
             popupTemplate: {
               title: '{name}',
@@ -290,6 +295,7 @@ export default function MapPage() {
           graphicsLayer.add(graphic)
         })
 
+        // routing feature removed
       } catch (err: any) {
         console.error('Map initialization error:', err)
         setError(err.message)
@@ -345,6 +351,7 @@ export default function MapPage() {
           >
             {showAllShelters ? '🏠 Show Local Shelters' : '🌍 Show All Shelters'}
           </button>
+          {/* routing UI removed */}
           <p className={styles.subtitle}>
             {filterMessage}
           </p>

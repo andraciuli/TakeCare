@@ -16,6 +16,9 @@ export default function AnimalsPage() {
   const [showAdoptModal, setShowAdoptModal] = useState(false)
   const [selectedAnimal, setSelectedAnimal] = useState<any>(null)
   const [adoptionMessage, setAdoptionMessage] = useState('')
+  const [requesterName, setRequesterName] = useState<string>('')
+  const [requesterEmail, setRequesterEmail] = useState<string>('')
+  const [requesterPhone, setRequesterPhone] = useState<string>('')
   const { user } = useAuth()
 
   useEffect(() => {
@@ -123,6 +126,9 @@ export default function AnimalsPage() {
     }
 
     setSelectedAnimal(animal)
+    setRequesterEmail(user?.email ?? '')
+    setRequesterName(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '')
+    setRequesterPhone('')
     setShowAdoptModal(true)
   }
 
@@ -146,6 +152,41 @@ export default function AnimalsPage() {
       setShowAdoptModal(false)
       setSelectedAnimal(null)
       setAdoptionMessage('')
+      alert('Adoption request submitted successfully!')
+    } catch (error: any) {
+      alert('Error submitting request: ' + error.message)
+    }
+
+    if (!requesterName.trim() || !requesterEmail.trim() || !requesterPhone.trim()) {
+      alert('Please complete your name, email and phone before submitting.')
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('adoption_requests')
+        .insert({
+          user_id: user.id,
+          animal_id: selectedAnimal.id,
+          status: 'pending',
+          message: adoptionMessage || null,
+          // store requester details (make sure these columns exist in your table)
+          requester_name: requesterName,
+          requester_email: requesterEmail,
+          requester_phone: requesterPhone
+        })
+
+      if (error) throw error
+
+      // Update local state
+      setAdoptionRequests(prev => new Set(prev).add(selectedAnimal.id))
+      // Clear modal state
+      setShowAdoptModal(false)
+      setSelectedAnimal(null)
+      setAdoptionMessage('')
+      setRequesterName('')
+      setRequesterEmail('')
+      setRequesterPhone('')
       alert('Adoption request submitted successfully!')
     } catch (error: any) {
       alert('Error submitting request: ' + error.message)
@@ -207,7 +248,10 @@ export default function AnimalsPage() {
                 {animal.shelters && (
                   <div className={styles.shelterInfo}>
                     <p className={styles.shelterName}>
-                      <strong>Shelter:</strong> {animal.shelters.name}
+                      <strong>Shelter:</strong>{' '}
+                      <Link href={`/shelter/${animal.shelters.id}`}>
+                        {animal.shelters.name}
+                      </Link>
                     </p>
                     {animal.shelters.address && (
                       <p className={styles.shelterAddress}>
@@ -275,6 +319,38 @@ export default function AnimalsPage() {
               ×
             </button>
             <h2>Request Adoption: {selectedAnimal.name}</h2>
+            
+            <p>Please complete your contact details.</p>
+            <div className={styles.formRow}>
+              <label className={styles.formLabel}>Numele tău</label>
+              <input
+                className={styles.formInput}
+                type="text"
+                value={requesterName}
+                onChange={(e) => setRequesterName(e.target.value)}
+                placeholder="Numele complet"
+              />
+            </div>
+            <div className={styles.formRow}>
+              <label className={styles.formLabel}>Emailul tău</label>
+              <input
+                className={styles.formInput}
+                type="email"
+                value={requesterEmail}
+                onChange={(e) => setRequesterEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
+            </div>
+            <div className={styles.formRow}>
+              <label className={styles.formLabel}>Telefonul tău</label>
+              <input
+                className={styles.formInput}
+                type="tel"
+                value={requesterPhone}
+                onChange={(e) => setRequesterPhone(e.target.value)}
+                placeholder="+40 7xx xxx xxx"
+              />
+            </div>
             <p>Would you like to include a message with your request?</p>
             <textarea
               className={styles.messageInput}
