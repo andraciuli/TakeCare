@@ -9,6 +9,10 @@ export default function AnimalsManager({ shelterId }: { shelterId: string }) {
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<any>({})
+  const [newImages, setNewImages] = useState<File[]>([])
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([])
+  const [existingImages, setExistingImages] = useState<string[]>([])
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([])
 
   useEffect(() => {
     fetchAnimals()
@@ -42,15 +46,86 @@ export default function AnimalsManager({ shelterId }: { shelterId: string }) {
       description: animal.description || '',
       status: animal.status,
     })
+    setExistingImages(animal.image_url || [])
+    setNewImages([])
+    setNewImagePreviews([])
+    setImagesToDelete([])
   }
 
   function cancelEdit() {
     setEditingId(null)
     setEditForm({})
+    setExistingImages([])
+    setNewImages([])
+    setNewImagePreviews([])
+    setImagesToDelete([])
+    // Clean up preview URLs
+    newImagePreviews.forEach(url => URL.revokeObjectURL(url))
+  }
+
+  function handleNewImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files)
+      setNewImages([...newImages, ...files])
+
+      const urls = files.map(file => URL.createObjectURL(file))
+      setNewImagePreviews([...newImagePreviews, ...urls])
+    }
+  }
+
+  function removeNewImage(index: number) {
+    URL.revokeObjectURL(newImagePreviews[index])
+    setNewImages(newImages.filter((_, i) => i !== index))
+    setNewImagePreviews(newImagePreviews.filter((_, i) => i !== index))
+  }
+
+  function markImageForDeletion(url: string) {
+    setImagesToDelete([...imagesToDelete, url])
+    setExistingImages(existingImages.filter(img => img !== url))
   }
 
   async function saveEdit(animalId: string) {
     try {
+      // Upload new images if any
+      let newImageUrls: string[] = []
+      if (newImages.length > 0) {
+        const uploadPromises = newImages.map(async (file) => {
+          const fileExt = file.name.split('.').pop()
+          const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
+          const filePath = `${fileName}`
+
+          const { data, error: uploadError } = await supabase.storage
+            .from('pets')
+            .upload(filePath, file)
+
+          if (uploadError) throw uploadError
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('pets')
+            .getPublicUrl(filePath)
+
+          return publicUrl
+        })
+
+        newImageUrls = await Promise.all(uploadPromises)
+      }
+
+      // Delete marked images from storage
+      if (imagesToDelete.length > 0) {
+        const filePaths = imagesToDelete.map(url => {
+          // Extract file path from URL
+          const urlParts = url.split('/pets/')
+          return urlParts[urlParts.length - 1]
+        })
+
+        await supabase.storage
+          .from('pets')
+          .remove(filePaths)
+      }
+
+      // Combine existing images (not deleted) with new image URLs
+      const finalImageUrls = [...existingImages, ...newImageUrls]
+
       const { error } = await supabase
         .from('animals')
         .update({
@@ -61,14 +136,22 @@ export default function AnimalsManager({ shelterId }: { shelterId: string }) {
           sex: editForm.sex,
           description: editForm.description || null,
           status: editForm.status,
+          image_url: finalImageUrls.length > 0 ? finalImageUrls : null,
         })
         .eq('id', animalId)
 
       if (error) throw error
 
+      // Clean up preview URLs
+      newImagePreviews.forEach(url => URL.revokeObjectURL(url))
+
       await fetchAnimals()
       setEditingId(null)
       setEditForm({})
+      setExistingImages([])
+      setNewImages([])
+      setNewImagePreviews([])
+      setImagesToDelete([])
     } catch (error: any) {
       alert('Error updating animal: ' + error.message)
     }
@@ -192,6 +275,62 @@ export default function AnimalsManager({ shelterId }: { shelterId: string }) {
                     />
                   </div>
 
+                  <div className={styles.formGroup}>
+                    <label>Images</label>
+
+                    {/* Existing Images */}
+                    {existingImages.length > 0 && (
+                      <div>
+                        <p className={styles.imageLabel}>Current Images:</p>
+                        <div className={styles.imageGrid}>
+                          {existingImages.map((url, index) => (
+                            <div key={`existing-${index}`} className={styles.imageItem}>
+                              <img src={url} alt={`Animal ${index + 1}`} className={styles.thumbnail} />
+                              <button
+                                type="button"
+                                onClick={() => markImageForDeletion(url)}
+                                className={styles.removeButton}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* New Images Preview */}
+                    {newImagePreviews.length > 0 && (
+                      <div>
+                        <p className={styles.imageLabel}>New Images:</p>
+                        <div className={styles.imageGrid}>
+                          {newImagePreviews.map((url, index) => (
+                            <div key={`new-${index}`} className={styles.imageItem}>
+                              <img src={url} alt={`New ${index + 1}`} className={styles.thumbnail} />
+                              <button
+                                type="button"
+                                onClick={() => removeNewImage(index)}
+                                className={styles.removeButton}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Upload New Images */}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleNewImageSelect}
+                      className={styles.fileInput}
+                    />
+                    <p className={styles.fileHint}>Add more images</p>
+                  </div>
+
                   <div className={styles.actions}>
                     <button onClick={cancelEdit} className={styles.cancelButton}>
                       Cancel
@@ -209,6 +348,16 @@ export default function AnimalsManager({ shelterId }: { shelterId: string }) {
                       {animal.status}
                     </span>
                   </div>
+
+                  {animal.image_url && animal.image_url.length > 0 && (
+                    <div className={styles.imageGrid}>
+                      {animal.image_url.map((url: string, index: number) => (
+                        <div key={index} className={styles.imageItem}>
+                          <img src={url} alt={`${animal.name} ${index + 1}`} className={styles.thumbnail} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   <div className={styles.info}>
                     <p><strong>Species:</strong> {animal.species}</p>

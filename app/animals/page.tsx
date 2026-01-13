@@ -19,6 +19,7 @@ export default function AnimalsPage() {
   const [requesterName, setRequesterName] = useState<string>('')
   const [requesterEmail, setRequesterEmail] = useState<string>('')
   const [requesterPhone, setRequesterPhone] = useState<string>('')
+  const [currentImageIndex, setCurrentImageIndex] = useState<Map<string, number>>(new Map())
   const { user } = useAuth()
 
   useEffect(() => {
@@ -73,6 +74,26 @@ export default function AnimalsPage() {
     }
     fetchAnimals()
   }, [user])
+
+  function handleNextImage(animalId: string, totalImages: number, e: React.MouseEvent) {
+    e.stopPropagation()
+    setCurrentImageIndex(prev => {
+      const newMap = new Map(prev)
+      const current = newMap.get(animalId) || 0
+      newMap.set(animalId, (current + 1) % totalImages)
+      return newMap
+    })
+  }
+
+  function handlePrevImage(animalId: string, totalImages: number, e: React.MouseEvent) {
+    e.stopPropagation()
+    setCurrentImageIndex(prev => {
+      const newMap = new Map(prev)
+      const current = newMap.get(animalId) || 0
+      newMap.set(animalId, current === 0 ? totalImages - 1 : current - 1)
+      return newMap
+    })
+  }
 
   async function handleToggleFavorite(animalId: string) {
     if (!user) return
@@ -224,6 +245,36 @@ export default function AnimalsPage() {
           <div className={styles.grid}>
             {animals.map((animal) => (
               <div key={animal.id} className={styles.card}>
+                {animal.image_url && animal.image_url.length > 0 && (
+                  <div className={styles.imageContainer}>
+                    <img
+                      src={animal.image_url[currentImageIndex.get(animal.id) || 0]}
+                      alt={animal.name}
+                      className={styles.animalImage}
+                    />
+                    {animal.image_url.length > 1 && (
+                      <>
+                        <button
+                          className={styles.imageNavLeft}
+                          onClick={(e) => handlePrevImage(animal.id, animal.image_url.length, e)}
+                          aria-label="Previous image"
+                        >
+                          ‹
+                        </button>
+                        <button
+                          className={styles.imageNavRight}
+                          onClick={(e) => handleNextImage(animal.id, animal.image_url.length, e)}
+                          aria-label="Next image"
+                        >
+                          ›
+                        </button>
+                        <span className={styles.imageCount}>
+                          {(currentImageIndex.get(animal.id) || 0) + 1} / {animal.image_url.length}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )}
                 <h2 className={styles.cardTitle}>{animal.name}</h2>
                 <p className={styles.info}>
                   <span className={styles.label}>Species:</span> {animal.species}
