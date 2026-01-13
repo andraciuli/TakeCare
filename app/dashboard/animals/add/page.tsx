@@ -11,6 +11,8 @@ export default function AddAnimalPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [previewUrls, setPreviewUrls] = useState<string[]>([])
 
   const [formData, setFormData] = useState({
     name: '',
@@ -26,12 +28,61 @@ export default function AddAnimalPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files)
+      setSelectedFiles(files)
+
+      // Create preview URLs
+      const urls = files.map(file => URL.createObjectURL(file))
+      setPreviewUrls(urls)
+    }
+  }
+
+  const removeImage = (index: number) => {
+    const newFiles = selectedFiles.filter((_, i) => i !== index)
+    const newUrls = previewUrls.filter((_, i) => i !== index)
+
+    // Revoke the old URL to free memory
+    URL.revokeObjectURL(previewUrls[index])
+
+    setSelectedFiles(newFiles)
+    setPreviewUrls(newUrls)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
 
     try {
+      let imageUrls: string[] = []
+
+      // Upload images to Supabase Storage if any are selected
+      if (selectedFiles.length > 0) {
+        const uploadPromises = selectedFiles.map(async (file) => {
+          const fileExt = file.name.split('.').pop()
+          const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
+          const filePath = `${fileName}`
+
+          const { data, error: uploadError } = await supabase.storage
+            .from('pets')
+            .upload(filePath, file)
+
+          if (uploadError) throw uploadError
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('pets')
+            .getPublicUrl(filePath)
+
+          return publicUrl
+        })
+
+        imageUrls = await Promise.all(uploadPromises)
+      }
+
+      // Insert animal with image URLs
       const { error } = await supabase
         .from('animals')
         .insert({
@@ -43,9 +94,14 @@ export default function AddAnimalPage() {
           sex: formData.sex,
           description: formData.description || null,
           status: formData.status,
+          image_url: imageUrls.length > 0 ? imageUrls : null,
         })
 
       if (error) throw error
+
+      // Clean up preview URLs
+      previewUrls.forEach(url => URL.revokeObjectURL(url))
+
       router.push('/dashboard')
     } catch (err: any) {
       setError(err.message)
@@ -155,6 +211,35 @@ export default function AddAnimalPage() {
                 rows={4}
                 placeholder="Describe the animal's personality, health, etc."
               />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Images</label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+                className={styles.fileInput}
+              />
+              <p className={styles.fileHint}>You can select multiple images</p>
+
+              {previewUrls.length > 0 && (
+                <div className={styles.imagePreviewGrid}>
+                  {previewUrls.map((url, index) => (
+                    <div key={index} className={styles.imagePreviewItem}>
+                      <img src={url} alt={`Preview ${index + 1}`} className={styles.previewImage} />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className={styles.removeImageButton}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {error && (
