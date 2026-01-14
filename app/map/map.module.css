@@ -99,3 +99,44 @@
   color: #dc2626;
   margin-bottom: 0.5rem;
 }
+
+/* Route info box shown on top-right when a route is computed */
+.routeInfo {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px 12px;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  font-size: 0.9rem;
+  color: #111827;
+  max-width: 240px;
+}
+
+.routeInfo button {
+  cursor: pointer;
+}
+
+/* Banner in the header that shows current route info */
+.routeBanner {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.clearRouteButton {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  background: #efefef;
+  cursor: pointer;
+}
+
+.clearRouteButton:hover {
+  background: #e0e7ff;
+}

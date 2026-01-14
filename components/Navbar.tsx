@@ -22,6 +22,9 @@ export default function Navbar() {
         <Link href="/feed" className={styles.navLink}>
           Feed
         </Link>
+        <Link href="/favorites" className={styles.navLink}>
+          Favorites
+        </Link>
         {userRole === 'shelter_admin' && (
           <Link href="/dashboard" className={styles.navLink}>
             Dashboard

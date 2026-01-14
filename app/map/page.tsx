@@ -52,6 +52,7 @@ export default function MapPage() {
   const [showAllShelters, setShowAllShelters] = useState(false) 
   const viewRef = useRef<any>(null)
   const [filterMessage, setFilterMessage] = useState<string>('');
+  const [routeInfo, setRouteInfo] = useState<any | null>(null)
   
   // Fetch shelters
   useEffect(() => {
@@ -127,6 +128,18 @@ export default function MapPage() {
     }
   }
 
+  // Handler callable from header to clear any drawn route
+  const handleClearRoute = () => {
+    try {
+      if (viewRef.current && typeof viewRef.current.clearRoute === 'function') {
+        viewRef.current.clearRoute()
+      }
+    } catch (e) {
+      /* noop */
+    }
+    setRouteInfo(null)
+  }
+
   // Handle button click
   const handleToggleView = () => {
     // Distruge harta curentă pentru a o forța să se reinițializeze cu noile date
@@ -175,8 +188,15 @@ export default function MapPage() {
         })
 
         // Add graphics layer for shelters
-        const graphicsLayer = new GraphicsLayer()
+        const graphicsLayer = new GraphicsLayer({ id: 'pointsLayer' })
         map.add(graphicsLayer)
+
+  // Layer to display the solved route
+  const routeLayer = new GraphicsLayer({ id: 'routeLayer' })
+  map.add(routeLayer)
+
+  // helper to (re)create user location marker - assigned later if we have user location
+  let addUserGraphic: (() => void) | null = null
 
   // (no route layer - routing UI removed)
 
@@ -216,31 +236,49 @@ export default function MapPage() {
             
             message = `${nearbyShelters.length} shelter${nearbyShelters.length !== 1 ? 's' : ''} found within ${MAX_DISTANCE_KM} km of your location.`;
             
-            // Adaugă un marker pentru locația utilizatorului
-            const userPoint = new Point({
-                longitude: userLocation.longitude,
-                latitude: userLocation.latitude
-            });
+            // Add a marker for the user's location. Keep a helper to (re)create it so Clear route won't remove it permanently.
+            let userGraphicRef: any = null
+            addUserGraphic = () => {
+              try {
+                // remove any previous user location markers to avoid duplicates
+                const existing = (graphicsLayer.graphics || []).filter((g: any) => g?.attributes?.__isUserLocation)
+                existing.forEach((g: any) => graphicsLayer.remove(g))
+              } catch (e) {
+                // ignore
+              }
 
-            const userGraphic = new Graphic({
+              const userPoint = new Point({
+                longitude: userLocation!.longitude,
+                latitude: userLocation!.latitude
+              });
+
+              userGraphicRef = new Graphic({
                 geometry: userPoint,
                 symbol: {
-                    type: 'simple-marker',
-                    color: [255, 0, 0], 
-                    size: 14,
-                    outline: {
-                        color: [255, 255, 255],
-                        width: 3
-                    }
+                  type: 'simple-marker',
+                  color: [255, 0, 0], 
+                  size: 14,
+                  outline: {
+                    color: [255, 255, 255],
+                    width: 3
+                  }
                 } as any,
-                attributes: { name: "Locația Mea" },
+                attributes: { __isUserLocation: true, name: 'Locația Mea' },
                 popupTemplate: {
-                    title: "Locația Ta Actuală",
-                    content: `Rază de căutare: ${MAX_DISTANCE_KM} km`
+                  title: 'Locația Ta Actuală',
+                  content: `Rază de căutare: ${MAX_DISTANCE_KM} km`
                 }
-            });
+              });
 
-            graphicsLayer.add(userGraphic);
+              try {
+                graphicsLayer.add(userGraphicRef)
+              } catch (e) {
+                // ignore
+              }
+            }
+
+            // Create initial user graphic
+            if (addUserGraphic) addUserGraphic()
         }
         
         setFilterMessage(message);
@@ -256,6 +294,12 @@ export default function MapPage() {
         viewRef.current = view
 
         await view.when()
+        // expose clearRoute on the view so header/button can call it
+        try {
+          ;(view as any).clearRoute = clearRoute
+        } catch (e) {
+          /* noop */
+        }
         console.log(`ArcGIS map loaded. View: ${showAllShelters ? 'All' : 'Filtered'}`);
 
   // Add shelter markers based on current list (filtered or all)
@@ -295,7 +339,210 @@ export default function MapPage() {
           graphicsLayer.add(graphic)
         })
 
-        // routing feature removed
+        // Routing: when user clicks a shelter graphic, solve a real route from userLocation -> shelter
+
+        // helper to clear route
+        function clearRoute() {
+          try {
+            routeLayer.removeAll()
+          } catch (e) {
+            /* noop */
+          }
+          // clear route info shown in header
+          try { setRouteInfo(null) } catch (e) { /* noop */ }
+          try {
+            // restore user's location marker if it was removed
+            if (addUserGraphic) addUserGraphic()
+          } catch (e) {
+            /* noop */
+          }
+        }
+
+        // Solve route using ArcGIS REST Route service
+        async function solveRouteToShelter(shelterAttrs: any) {
+          if (!userLocation) {
+            alert('User location is required to compute a route. Please allow location access.')
+            return
+          }
+
+          // clear any previous route
+          clearRoute()
+
+          const stops = `${userLocation.longitude},${userLocation.latitude};${shelterAttrs.longitude},${shelterAttrs.latitude}`
+          const apiKey = (Config && (Config as any).apiKey) || process.env.NEXT_PUBLIC_ARCGIS_API_KEY
+          const url = `https://route.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World/solve?f=json&stops=${encodeURIComponent(stops)}&returnRoutes=true&returnDirections=false&directionsLengthUnits=esriSRUnit_Kilometer&apiKey=${encodeURIComponent(apiKey)}`
+
+          try {
+            const resp = await fetch(url)
+            const data = await resp.json()
+
+            // Debug: log raw response for diagnostics
+            console.debug('Route service response', data)
+
+            const routeFeature = data?.routes?.features?.[0]
+
+            if (!routeFeature) {
+              // If the route service returns no route, show the server message (if any) and fall back to a straight-line route
+              console.warn('No route found in ArcGIS response', data)
+              // update route info state to indicate fallback attempt
+              setRouteInfo({ provider: 'ArcGIS', name: shelterAttrs.name, note: 'Falling back to OSRM/estimate' })
+
+              // Try a public OSRM routing service as a fallback to get a road-following route
+              try {
+                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${userLocation.longitude},${userLocation.latitude};${shelterAttrs.longitude},${shelterAttrs.latitude}?overview=full&geometries=geojson`;
+                const osrmResp = await fetch(osrmUrl);
+                const osrmData = await osrmResp.json();
+                console.debug('OSRM response', osrmData)
+
+                const osrmRoute = osrmData?.routes?.[0]
+                if (osrmRoute && osrmRoute.geometry && osrmRoute.geometry.coordinates) {
+                  const coords = osrmRoute.geometry.coordinates // array of [lon, lat]
+                  const polylineGeomOSRM = {
+                    type: 'polyline',
+                    paths: [coords],
+                    spatialReference: { wkid: 4326 }
+                  }
+
+                  const routeGraphicOSRM = new Graphic({
+                    geometry: polylineGeomOSRM as any,
+                    symbol: {
+                      type: 'simple-line',
+                      color: [3, 102, 214],
+                      width: 5,
+                      style: 'solid'
+                    } as any
+                  })
+
+                  routeLayer.removeAll()
+                  routeLayer.add(routeGraphicOSRM)
+
+                  const distKm = (osrmRoute.distance || 0) / 1000
+                  const durationMin = (osrmRoute.duration || 0) / 60
+                  const kmStr = distKm >= 1 ? distKm.toFixed(1) + ' km' : (distKm * 1000).toFixed(0) + ' m'
+                  const durationStr = durationMin >= 60 ? Math.round(durationMin / 60) + ' hr' : Math.round(durationMin) + ' min'
+
+                  setRouteInfo({ provider: 'OSRM', name: shelterAttrs.name, distanceKm: distKm, durationMin: durationMin })
+
+                  try { await view.goTo(routeGraphicOSRM.geometry, { animate: true, duration: 500 }) } catch(e) {}
+                  return
+                }
+              } catch (osrmErr) {
+                console.warn('OSRM fallback failed', osrmErr)
+              }
+
+              // final fallback: draw straight polyline between user and shelter
+              const straightLine = {
+                type: 'polyline',
+                paths: [[[userLocation.longitude, userLocation.latitude], [shelterAttrs.longitude, shelterAttrs.latitude]]],
+                spatialReference: { wkid: 4326 }
+              }
+
+              const fallbackGraphic = new Graphic({
+                geometry: straightLine as any,
+                symbol: {
+                  type: 'simple-line',
+                  color: [199, 210, 254],
+                  width: 4,
+                  style: 'dash'
+                } as any
+              })
+
+              routeLayer.removeAll()
+              routeLayer.add(fallbackGraphic)
+
+              // compute distance/duration from haversine
+              const distKm = getDistance(userLocation.latitude, userLocation.longitude, shelterAttrs.latitude, shelterAttrs.longitude)
+              const durationMin = (distKm / 50) * 60
+              const kmStr = distKm >= 1 ? distKm.toFixed(1) + ' km' : (distKm * 1000).toFixed(0) + ' m'
+              const durationStr = durationMin >= 60 ? Math.round(durationMin / 60) + ' hr' : Math.round(durationMin) + ' min'
+              // update route info with estimate
+              setRouteInfo({ provider: 'estimate', name: shelterAttrs.name, distanceKm: distKm, durationMin: durationMin })
+
+              try { await view.goTo(fallbackGraphic.geometry, { animate: true, duration: 500 }) } catch(e) {}
+              return
+            }
+
+            const paths = routeFeature.geometry?.paths
+            if (!paths) throw new Error('No geometry in route result')
+
+            const polylineGeom = {
+              type: 'polyline',
+              paths: paths,
+              spatialReference: { wkid: 4326 }
+            }
+
+            const routeGraphic = new Graphic({
+              geometry: polylineGeom as any,
+              symbol: {
+                type: 'simple-line',
+                color: [3, 102, 214],
+                width: 5,
+                style: 'solid'
+              } as any
+            })
+
+            routeLayer.removeAll()
+            routeLayer.add(routeGraphic)
+
+            // Compute distance (km) from geometry if attributes not present
+            let distanceKm: number | null = null
+            let durationMin: number | null = null
+
+            const attrs = routeFeature.attributes || {}
+            // Try common attributes names, otherwise compute from geometry
+            distanceKm = attrs.Total_Kilometers || attrs.Total_Miles ? (attrs.Total_Kilometers ?? (attrs.Total_Miles ? attrs.Total_Miles * 1.60934 : null)) : null
+            durationMin = attrs.Total_Minutes || attrs.Total_Minutes_ || attrs.Total_TravelTime || attrs.Total_TravelTime_Minutes || null
+
+            if (!distanceKm) {
+              // compute from paths coordinates (sum haversine)
+              let total = 0
+              for (const singlePath of paths) {
+                for (let i = 1; i < singlePath.length; i++) {
+                  const [x1, y1] = singlePath[i - 1]
+                  const [x2, y2] = singlePath[i]
+                  total += getDistance(y1, x1, y2, x2)
+                }
+              }
+              distanceKm = total
+            }
+
+            if (!durationMin) {
+              // fallback: assume avg speed 50 km/h
+              durationMin = (distanceKm / 50) * 60
+            }
+
+            // Update route info from ArcGIS result
+            const kmStr = distanceKm >= 1 ? distanceKm.toFixed(1) + ' km' : (distanceKm * 1000).toFixed(0) + ' m'
+            const durationStr = durationMin >= 60 ? Math.round(durationMin / 60) + ' hr' : Math.round(durationMin) + ' min'
+            setRouteInfo({ provider: 'ArcGIS', name: shelterAttrs.name, distanceKm: distanceKm, durationMin: durationMin })
+
+            // zoom to route extent
+            try {
+              await view.goTo(routeGraphic.geometry, { animate: true, duration: 500 })
+            } catch (e) {
+              // ignore
+            }
+
+          } catch (err: any) {
+            console.error('Route solve error', err)
+            alert('Could not compute route: ' + (err.message || err))
+          }
+        }
+
+        // Use hitTest on click to detect shelter graphics
+        view.on('click', async (evt: any) => {
+          try {
+            const hit = await view.hitTest(evt)
+            const result = hit.results.find((r: any) => (r as any).graphic && (r as any).graphic.layer === graphicsLayer)
+            if (result && (result as any).graphic && (result as any).graphic.attributes) {
+              const shelterAttrs = (result as any).graphic.attributes
+              // call route solver
+              await solveRouteToShelter(shelterAttrs)
+            }
+          } catch (e) {
+            console.error('Hit test error', e)
+          }
+        })
       } catch (err: any) {
         console.error('Map initialization error:', err)
         setError(err.message)
@@ -342,19 +589,37 @@ export default function MapPage() {
       <Navbar />
       <div className={styles.container}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Shelter Map</h1>
-          <button 
-            onClick={handleToggleView} 
-            className={styles.toggleButton} // Necesită stilizare CSS
-            disabled={!userLocation} // Dezactivează dacă nu avem locație pentru a arăta "Local"
-            title={!userLocation ? "Location required to filter locally" : showAllShelters ? "Show shelters near me" : "Show all shelters"}
-          >
-            {showAllShelters ? '🏠 Show Local Shelters' : '🌍 Show All Shelters'}
-          </button>
-          {/* routing UI removed */}
+          <div className={styles.titleContainer}>
+            <h1 className={styles.title}>Shelter Map</h1>
+            <button 
+              onClick={handleToggleView} 
+              className={styles.toggleButton} // Necesită stilizare CSS
+              disabled={!userLocation} // Dezactivează dacă nu avem locație pentru a arăta "Local"
+              title={!userLocation ? "Location required to filter locally" : showAllShelters ? "Show shelters near me" : "Show all shelters"}
+            >
+              {showAllShelters ? '🏠 Show Local Shelters' : '🌍 Show All Shelters'}
+            </button>
+          </div>
+
           <p className={styles.subtitle}>
             {filterMessage}
           </p>
+
+          {routeInfo && (
+            <div className={styles.routeBanner}>
+              <div>
+                <strong>{routeInfo.name}</strong>
+                {routeInfo.distanceKm != null ? (
+                  <span style={{ marginLeft: 8 }}>{routeInfo.distanceKm >= 1 ? `${routeInfo.distanceKm.toFixed(1)} km` : `${Math.round(routeInfo.distanceKm * 1000)} m`} • {routeInfo.durationMin >= 60 ? `${Math.round(routeInfo.durationMin / 60)} hr` : `${Math.round(routeInfo.durationMin)} min`}</span>
+                ) : routeInfo.note ? (
+                  <span style={{ marginLeft: 8, color: '#6b7280' }}>{routeInfo.note}</span>
+                ) : null}
+              </div>
+              <div>
+                <button className={styles.clearRouteButton} onClick={handleClearRoute}>Clear route</button>
+              </div>
+            </div>
+          )}
         </div>
         <div ref={mapViewNode} className={styles.mapView} />
       </div>
