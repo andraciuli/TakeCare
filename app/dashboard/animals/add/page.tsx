@@ -66,14 +66,14 @@ export default function AddAnimalPage() {
           const filePath = `${fileName}`
 
           const { data, error: uploadError } = await supabase.storage
-            .from('pets')
+            .from('animal-images')
             .upload(filePath, file)
 
           if (uploadError) throw uploadError
 
           // Get public URL
           const { data: { publicUrl } } = supabase.storage
-            .from('pets')
+            .from('animal-images')
             .getPublicUrl(filePath)
 
           return publicUrl

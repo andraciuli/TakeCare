@@ -16,6 +16,9 @@ export default function Navbar() {
         <Link href="/animals" className={styles.navLink}>
           Animals
         </Link>
+        <Link href="/matchmaker" className={styles.navLink}>
+          Matchmaker
+        </Link>
         <Link href="/map" className={styles.navLink}>
           Map
         </Link>

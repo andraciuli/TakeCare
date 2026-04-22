@@ -60,15 +60,28 @@ export default function AuthPage() {
 
         // Update user role if shelter_admin
         const { data: { user } } = await supabase.auth.getUser()
-        if (user && selectedRole === 'shelter_admin') {
-          await supabase
-            .from('users')
-            .update({ role: 'shelter_admin' })
-            .eq('id', user.id)
+        // if (user && selectedRole === 'shelter_admin') {
+        //   await supabase
+        //     .from('users')
+        //     .update({ role: 'shelter_admin' })
+        //     .eq('id', user.id)
 
-          // Refresh auth context to get updated role
-          await refreshUserData()
-        }
+        //   // Refresh auth context to get updated role
+            if (!user) throw new Error('No user after signup')
+
+            // Create or update profile in public.users
+            const { error: upsertErr } = await supabase
+              .from('users')
+              .upsert({
+                id: user.id,
+                email: user.email,
+                role: selectedRole, // <-- exact ce a ales utilizatorul
+              })
+
+            if (upsertErr) throw upsertErr
+
+        await refreshUserData()
+        // }
 
         // Redirect based on role
         if (selectedRole === 'shelter_admin') {
