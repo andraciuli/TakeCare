@@ -19,11 +19,11 @@ export default function Navbar() {
         <Link href="/matchmaker" className={styles.navLink}>
           Matchmaker
         </Link>
+        <Link href="/education" className={styles.navLink}>
+          Educație
+        </Link>
         <Link href="/map" className={styles.navLink}>
           Map
-        </Link>
-        <Link href="/feed" className={styles.navLink}>
-          Feed
         </Link>
         <Link href="/favorites" className={styles.navLink}>
           Favorites
