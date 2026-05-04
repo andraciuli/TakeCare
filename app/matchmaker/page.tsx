@@ -44,6 +44,35 @@ export default function MatchmakerPage() {
     breedPref: ''
   });
 
+  // Load from sessionStorage on mount to preserve state when going back
+  useEffect(() => {
+    try {
+      const savedMatches = sessionStorage.getItem('matchmaker_matches');
+      const savedForm = sessionStorage.getItem('matchmaker_form');
+      const savedShowResults = sessionStorage.getItem('matchmaker_showResults');
+
+      if (savedMatches) setMatches(JSON.parse(savedMatches));
+      if (savedForm) setForm(JSON.parse(savedForm));
+      if (savedShowResults) setShowResults(JSON.parse(savedShowResults));
+      
+      // If we had results, scroll to them
+      if (savedShowResults === 'true') {
+        setTimeout(() => {
+          document.getElementById('match-results')?.scrollIntoView({ behavior: 'smooth' });
+        }, 300);
+      }
+    } catch (e) {
+      console.error('Failed to load matchmaker state from session storage', e);
+    }
+  }, []);
+
+  // Save to sessionStorage whenever state changes
+  useEffect(() => {
+    sessionStorage.setItem('matchmaker_matches', JSON.stringify(matches));
+    sessionStorage.setItem('matchmaker_form', JSON.stringify(form));
+    sessionStorage.setItem('matchmaker_showResults', JSON.stringify(showResults));
+  }, [matches, form, showResults]);
+
   useEffect(() => {
     async function fetchAnimals() {
       try {
@@ -204,9 +233,14 @@ export default function MatchmakerPage() {
 
                       <p className={styles.description}>{animal.description}</p>
                       
-                      <Link href="/animals" style={{marginTop: '1rem', color: '#0070f3', fontWeight: 600, textDecoration: 'none'}}>
-                        View available animals →
-                      </Link>
+                      <div className={styles.actionButtons}>
+                        <Link href={`/animals/${animal.id}`} className={styles.btnDetails}>
+                          Vezi Detalii
+                        </Link>
+                        <Link href={`/animals/${animal.id}`} className={styles.btnAdopt}>
+                          Cerere Adopție
+                        </Link>
+                      </div>
                     </div>
                   ))}
                 </div>

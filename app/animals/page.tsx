@@ -22,10 +22,25 @@ export default function AnimalsPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState<Map<string, number>>(new Map())
   const { user } = useAuth()
 
+  // Filter States
+  const [filterSpecies, setFilterSpecies] = useState<string>('all')
+  const [filterSex, setFilterSex] = useState<string>('all')
+  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [searchInput, setSearchInput] = useState<string>('')
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('')
+
+  // Debounce search input to avoid too many DB queries
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchInput)
+    }, 500)
+    return () => clearTimeout(handler)
+  }, [searchInput])
+
   useEffect(() => {
     async function fetchAnimals() {
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('animals')
           .select(`
             *,
@@ -36,6 +51,22 @@ export default function AnimalsPage() {
               phone
             )
           `)
+
+        // Apply filters
+        if (filterSpecies !== 'all') {
+          query = query.eq('species', filterSpecies)
+        }
+        if (filterSex !== 'all') {
+          query = query.eq('sex', filterSex)
+        }
+        if (filterStatus !== 'all') {
+          query = query.eq('status', filterStatus)
+        }
+        if (debouncedSearch.trim() !== '') {
+          query = query.or(`name.ilike.%${debouncedSearch}%,breed.ilike.%${debouncedSearch}%`)
+        }
+
+        const { data, error } = await query
         if (error) throw error
         setAnimals(data || [])
 
@@ -73,7 +104,7 @@ export default function AnimalsPage() {
       }
     }
     fetchAnimals()
-  }, [user])
+  }, [user, filterSpecies, filterSex, filterStatus, debouncedSearch])
 
   function handleNextImage(animalId: string, totalImages: number, e: React.MouseEvent) {
     e.stopPropagation()
@@ -239,6 +270,58 @@ export default function AnimalsPage() {
       <div className={styles.container}>
         <div className={styles.maxWidth}>
           <h1 className={styles.title}>Available Animals</h1>
+
+          {/* Filter Bar */}
+          <div className={styles.filterBar}>
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel}>Căutare text</label>
+              <input 
+                type="text" 
+                className={styles.filterInput}
+                placeholder="Nume sau rasă..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
+            </div>
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel}>Specie</label>
+              <select className={styles.filterSelect} value={filterSpecies} onChange={(e) => setFilterSpecies(e.target.value)}>
+                <option value="all">Toate</option>
+                <option value="dog">Câine</option>
+                <option value="cat">Pisică</option>
+                <option value="other">Altele</option>
+              </select>
+            </div>
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel}>Sex</label>
+              <select className={styles.filterSelect} value={filterSex} onChange={(e) => setFilterSex(e.target.value)}>
+                <option value="all">Toate</option>
+                <option value="male">Mascul</option>
+                <option value="female">Femelă</option>
+              </select>
+            </div>
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel}>Status</label>
+              <select className={styles.filterSelect} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                <option value="all">Toate</option>
+                <option value="available">Disponibil</option>
+                <option value="pending">În așteptare</option>
+                <option value="adopted">Adoptat</option>
+              </select>
+            </div>
+            <button 
+              className={styles.filterResetButton}
+              onClick={() => {
+                setSearchInput('')
+                setFilterSpecies('all')
+                setFilterSex('all')
+                setFilterStatus('all')
+              }}
+            >
+              Resetează
+            </button>
+          </div>
+
         {animals.length === 0 ? (
           <p>No animals found. Run the seed data SQL in Supabase.</p>
         ) : (
@@ -247,11 +330,13 @@ export default function AnimalsPage() {
               <div key={animal.id} className={styles.card}>
                 {animal.image_url && animal.image_url.length > 0 && (
                   <div className={styles.imageContainer}>
-                    <img
-                      src={animal.image_url[currentImageIndex.get(animal.id) || 0]}
-                      alt={animal.name}
-                      className={styles.animalImage}
-                    />
+                    <Link href={`/animals/${animal.id}`} style={{ display: 'block', width: '100%', height: '100%' }}>
+                      <img
+                        src={animal.image_url[currentImageIndex.get(animal.id) || 0]}
+                        alt={animal.name}
+                        className={styles.animalImage}
+                      />
+                    </Link>
                     {animal.image_url.length > 1 && (
                       <>
                         <button
@@ -275,7 +360,9 @@ export default function AnimalsPage() {
                     )}
                   </div>
                 )}
-                <h2 className={styles.cardTitle}>{animal.name}</h2>
+                <Link href={`/animals/${animal.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <h2 className={styles.cardTitle}>{animal.name}</h2>
+                </Link>
                 <p className={styles.info}>
                   <span className={styles.label}>Species:</span> {animal.species}
                 </p>
@@ -319,6 +406,12 @@ export default function AnimalsPage() {
                 >
                   {animal.status}
                 </span>
+
+                <div style={{ marginTop: '15px' }}>
+                  <Link href={`/animals/${animal.id}`} style={{ display: 'block', width: '100%', padding: '10px', background: '#f3f4f6', color: '#374151', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', textAlign: 'center', transition: 'background 0.2s' }}>
+                    Vezi Detalii
+                  </Link>
+                </div>
 
                 {/* Show actions only for authenticated users */}
                 {user ? (

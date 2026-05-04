@@ -269,3 +269,41 @@
     justify-content: center;
   }
 }
+
+.actionButtons {
+  display: flex;
+  gap: 10px;
+  margin-top: 1.5rem;
+}
+
+.btnDetails {
+  flex: 1;
+  padding: 10px;
+  background: #f3f4f6;
+  color: #374151;
+  border-radius: 8px;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btnDetails:hover {
+  background: #e5e7eb;
+}
+
+.btnAdopt {
+  flex: 1;
+  padding: 10px;
+  background: #3b82f6;
+  color: white;
+  border-radius: 8px;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btnAdopt:hover {
+  background: #2563eb;
+}
