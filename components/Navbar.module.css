@@ -47,6 +47,11 @@
 .userEmail {
   color: #666;
   font-size: 0.875rem;
+  transition: color 0.2s;
+}
+
+.userEmail:hover {
+  color: #0070f3;
 }
 
 .logoutButton {

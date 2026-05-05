@@ -110,6 +110,87 @@ export default function EducationPage() {
         </p>
       </section>
 
+      {/* ── Quiz Interactiv ── */}
+      <section className={styles.quizSection}>
+        <div className={styles.quizInner}>
+          <span className={styles.sectionTag} style={{ color: '#3b82f6' }}>✅ Test de Pregătire</span>
+          <h2 className={styles.sectionTitle} style={{ textAlign: 'center' }}>Ești pregătit(ă) să adopți?</h2>
+          <p className={styles.sectionSubtitle} style={{ margin: '0 auto 2.5rem', textAlign: 'center' }}>
+            Începe prin a-ți evalua cunoștințele. Răspunde sincer la aceste 5 întrebări înainte de a parcurge restul materialelor.
+          </p>
+
+          <div className={styles.quizCard}>
+            {!isFinished ? (
+              <>
+                <div className={styles.progressContainer}>
+                  <span className={styles.progressText}>Întrebarea {currentQ + 1} din {QUIZ_DATA.length}</span>
+                  <div className={styles.progressBar}>
+                    <div className={styles.progressFill} style={{ width: `${(currentQ / QUIZ_DATA.length) * 100}%` }} />
+                  </div>
+                </div>
+
+                <h3 className={styles.questionText}>{QUIZ_DATA[currentQ].question}</h3>
+
+                <div className={styles.optionsGrid}>
+                  {QUIZ_DATA[currentQ].options.map((opt, idx) => (
+                    <button key={idx} className={styles.optionButton} onClick={() => handleOption(opt)}>
+                      {opt.text}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className={styles.resultsSection}>
+                <h3 className={styles.resultTitle}>Rezultatul Tău</h3>
+
+                <div className={`${styles.scoreCircle} ${
+                  scoreCategory === 'excellent' ? styles.scoreExcellent :
+                  scoreCategory === 'good' ? styles.scoreGood :
+                  styles.scoreNeedsWork
+                }`}>
+                  {totalScore}%
+                </div>
+
+                {scoreCategory === 'excellent' && (
+                  <p className={styles.resultMessage}><strong>Felicitări!</strong> Ești complet pregătit(ă) să adopți! Ai cunoștințele și dedicarea necesară pentru a oferi o viață excelentă unui animal salvat.</p>
+                )}
+                {scoreCategory === 'good' && (
+                  <p className={styles.resultMessage}><strong>Ești pe drumul cel bun!</strong> Ești un candidat bun, dar revizuiește informațiile de mai jos pentru câteva aspecte care necesită atenție.</p>
+                )}
+                {scoreCategory === 'needsWork' && (
+                  <p className={styles.resultMessage}><strong>Mai pregătește-te puțin!</strong> Adopția este o responsabilitate uriașă. Parcurge cu atenție materialul educațional de mai jos înainte de a lua o decizie.</p>
+                )}
+
+                {feedbackList.length > 0 && (
+                  <div className={styles.feedbackList}>
+                    <h4 className={styles.feedbackTitle}>La ce trebuie să lucrezi:</h4>
+                    {feedbackList.map((fb, i) => (
+                      <div key={i} className={styles.feedbackItem}>
+                        <div className={styles.feedbackIcon}>!</div>
+                        <div className={styles.feedbackText}>{fb}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className={styles.actionButtons}>
+                  {totalScore >= 50 && (
+                    <Link href="/matchmaker" className={styles.primaryButton}>
+                      🐾 Găsește-ți animalul perfect
+                    </Link>
+                  )}
+                  <button onClick={resetQuiz} className={styles.secondaryButton}>
+                    Reia Testul
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <hr className={styles.divider} />
+
       {/* ── Îngrijire de Bază ── */}
       <section className={styles.section}>
         <span className={styles.sectionTag} style={{ color: '#3b82f6' }}>🩺 Îngrijire</span>
@@ -168,86 +249,6 @@ export default function EducationPage() {
         </div>
       </section>
 
-      <hr className={styles.divider} />
-
-      {/* ── Quiz Interactiv ── */}
-      <section className={styles.quizSection}>
-        <div className={styles.quizInner}>
-          <span className={styles.sectionTag} style={{ color: '#3b82f6' }}>✅ Test de Pregătire</span>
-          <h2 className={styles.sectionTitle} style={{ textAlign: 'center' }}>Ești pregătit(ă) să adopți?</h2>
-          <p className={styles.sectionSubtitle} style={{ margin: '0 auto 2.5rem', textAlign: 'center' }}>
-            Acum că te-ai informat, pune-ți cunoștințele la încercare. Răspunde sincer la aceste 5 întrebări.
-          </p>
-
-          <div className={styles.quizCard}>
-            {!isFinished ? (
-              <>
-                <div className={styles.progressContainer}>
-                  <span className={styles.progressText}>Întrebarea {currentQ + 1} din {QUIZ_DATA.length}</span>
-                  <div className={styles.progressBar}>
-                    <div className={styles.progressFill} style={{ width: `${(currentQ / QUIZ_DATA.length) * 100}%` }} />
-                  </div>
-                </div>
-
-                <h3 className={styles.questionText}>{QUIZ_DATA[currentQ].question}</h3>
-
-                <div className={styles.optionsGrid}>
-                  {QUIZ_DATA[currentQ].options.map((opt, idx) => (
-                    <button key={idx} className={styles.optionButton} onClick={() => handleOption(opt)}>
-                      {opt.text}
-                    </button>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className={styles.resultsSection}>
-                <h3 className={styles.resultTitle}>Rezultatul Tău</h3>
-
-                <div className={`${styles.scoreCircle} ${
-                  scoreCategory === 'excellent' ? styles.scoreExcellent :
-                  scoreCategory === 'good' ? styles.scoreGood :
-                  styles.scoreNeedsWork
-                }`}>
-                  {totalScore}%
-                </div>
-
-                {scoreCategory === 'excellent' && (
-                  <p className={styles.resultMessage}><strong>Felicitări!</strong> Ești complet pregătit(ă) să adopți! Ai cunoștințele și dedicarea necesară pentru a oferi o viață excelentă unui animal salvat.</p>
-                )}
-                {scoreCategory === 'good' && (
-                  <p className={styles.resultMessage}><strong>Ești pe drumul cel bun!</strong> Ești un candidat bun, dar revizuiește informațiile de mai sus pentru câteva aspecte care necesită atenție.</p>
-                )}
-                {scoreCategory === 'needsWork' && (
-                  <p className={styles.resultMessage}><strong>Mai pregătește-te puțin!</strong> Adopția este o responsabilitate uriașă. Reia materialul educațional de mai sus înainte de a lua o decizie.</p>
-                )}
-
-                {feedbackList.length > 0 && (
-                  <div className={styles.feedbackList}>
-                    <h4 className={styles.feedbackTitle}>La ce trebuie să lucrezi:</h4>
-                    {feedbackList.map((fb, i) => (
-                      <div key={i} className={styles.feedbackItem}>
-                        <div className={styles.feedbackIcon}>!</div>
-                        <div className={styles.feedbackText}>{fb}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className={styles.actionButtons}>
-                  {totalScore >= 50 && (
-                    <Link href="/matchmaker" className={styles.primaryButton}>
-                      🐾 Găsește-ți animalul perfect
-                    </Link>
-                  )}
-                  <button onClick={resetQuiz} className={styles.secondaryButton}>
-                    Reia Testul
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
     </div>
   )
 }

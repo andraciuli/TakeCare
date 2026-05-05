@@ -40,7 +40,9 @@ export default function Navbar() {
           <span className={styles.userEmail}>Loading...</span>
         ) : user ? (
           <>
-            <span className={styles.userEmail}>{user.email}</span>
+            <Link href="/profile" className={styles.userEmail} style={{ textDecoration: 'none', cursor: 'pointer' }}>
+              Profile
+            </Link>
             <button onClick={() => signOut()} className={styles.logoutButton}>
               Logout
             </button>

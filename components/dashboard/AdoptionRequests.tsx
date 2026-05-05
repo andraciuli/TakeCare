@@ -18,7 +18,7 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
         .select(`
           *,
           animals!inner(id, name, species, shelter_id),
-          users!inner(email, first_name, last_name, phone)
+          users!inner(email, first_name, last_name, phone, adoption_profile)
         `)
         .eq('animals.shelter_id', shelterId)
         .order('created_at', { ascending: false })
@@ -96,6 +96,22 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
                   <p><strong>Phone:</strong> {request.users.phone}</p>
                 )}
               </div>
+
+              {request.users.adoption_profile && Object.keys(request.users.adoption_profile).length > 0 && (
+                <div className={styles.adoptionProfile}>
+                  <h4 style={{marginTop: '1rem', marginBottom: '0.5rem', color: '#374151'}}>Adoption Profile / Interview</h4>
+                  <div style={{background: '#f9fafb', padding: '1rem', borderRadius: '8px', fontSize: '0.9rem', color: '#4b5563', display: 'grid', gap: '0.5rem'}}>
+                    {request.users.adoption_profile.housing_type && <p><strong>Housing:</strong> {request.users.adoption_profile.housing_type} ({request.users.adoption_profile.housing_status})</p>}
+                    {request.users.adoption_profile.household_members && <p><strong>Household:</strong> {request.users.adoption_profile.household_members}</p>}
+                    {request.users.adoption_profile.other_pets && <p><strong>Other Pets:</strong> {request.users.adoption_profile.other_pets}</p>}
+                    {request.users.adoption_profile.hours_alone && <p><strong>Hours Alone:</strong> {request.users.adoption_profile.hours_alone}</p>}
+                    {request.users.adoption_profile.physical_activity && <p><strong>Activity:</strong> {request.users.adoption_profile.physical_activity}</p>}
+                    {request.users.adoption_profile.long_term_commitment && <p><strong>Long-term Commitment:</strong> {request.users.adoption_profile.long_term_commitment}</p>}
+                    {request.users.adoption_profile.adoption_motivation && <p><strong>Motivation:</strong> {request.users.adoption_profile.adoption_motivation}</p>}
+                    {request.users.adoption_profile.sleeping_place && <p><strong>Sleeping Place:</strong> {request.users.adoption_profile.sleeping_place}</p>}
+                  </div>
+                </div>
+              )}
 
               {request.message && (
                 <div className={styles.message}>
