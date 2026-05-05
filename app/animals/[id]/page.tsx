@@ -24,6 +24,9 @@ export default function AnimalDetailsPage() {
   const [requesterName, setRequesterName] = useState<string>('')
   const [requesterEmail, setRequesterEmail] = useState<string>('')
   const [requesterPhone, setRequesterPhone] = useState<string>('')
+  const [isProfileComplete, setIsProfileComplete] = useState<boolean>(false)
+  const [formError, setFormError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   
@@ -73,6 +76,22 @@ export default function AnimalDetailsPage() {
           if (reqData && reqData.length > 0) {
             setRequestStatus(reqData[0].status)
           }
+
+          const { data: profileData } = await supabase
+            .from('users')
+            .select('first_name, last_name, phone')
+            .eq('id', user.id)
+            .single()
+
+          if (profileData) {
+            const fullName = [profileData.first_name, profileData.last_name].filter(Boolean).join(' ')
+            if (fullName && profileData.phone) {
+              setIsProfileComplete(true)
+            }
+            setRequesterName(fullName || user?.user_metadata?.full_name || '')
+            setRequesterPhone(profileData.phone || '')
+          }
+          setRequesterEmail(user.email ?? '')
         }
       } catch (err: any) {
         setError(err.message)
@@ -127,9 +146,10 @@ export default function AnimalDetailsPage() {
       return
     }
 
-    setRequesterEmail(user?.email ?? '')
-    setRequesterName(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '')
-    setRequesterPhone('')
+    if (!isProfileComplete) {
+      setRequesterEmail(user?.email ?? '')
+      if (!requesterName) setRequesterName(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '')
+    }
     setShowAdoptModal(true)
   }
 
@@ -137,21 +157,35 @@ export default function AnimalDetailsPage() {
     if (!user || !animal) return
 
     if (!requesterName.trim() || !requesterEmail.trim() || !requesterPhone.trim()) {
-      alert('Please complete your name, email and phone before submitting.')
+      setFormError('Te rugăm să completezi numele, emailul și telefonul înainte de a trimite.')
       return
     }
+    setFormError('')
 
     try {
+      if (!isProfileComplete) {
+        // Split name into first and last
+        const nameParts = requesterName.trim().split(' ')
+        const firstName = nameParts[0]
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : ''
+        
+        await supabase
+          .from('users')
+          .update({
+            first_name: firstName,
+            last_name: lastName,
+            phone: requesterPhone
+          })
+          .eq('id', user.id)
+      }
+
       const { error } = await supabase
         .from('adoption_requests')
         .insert({
           user_id: user.id,
           animal_id: animal.id,
           status: 'pending',
-          message: adoptionMessage || null,
-          requester_name: requesterName,
-          requester_email: requesterEmail,
-          requester_phone: requesterPhone
+          message: adoptionMessage || null
         })
 
       if (error) throw error
@@ -159,7 +193,9 @@ export default function AnimalDetailsPage() {
       setRequestStatus('pending')
       setShowAdoptModal(false)
       setAdoptionMessage('')
-      alert('Adoption request submitted successfully!')
+      setSuccessMessage('Cererea de adopție a fost trimisă cu succes!')
+      window.scrollTo(0, 0)
+      setTimeout(() => setSuccessMessage(''), 5000)
     } catch (error: any) {
       alert('Error submitting request: ' + error.message)
     }
@@ -194,6 +230,12 @@ export default function AnimalDetailsPage() {
           <div className={styles.breadcrumb}>
             <Link href="/animals">← Inapoi la toate animalele</Link>
           </div>
+          
+          {successMessage && (
+            <div style={{ background: '#ecfdf5', color: '#10b981', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #10b981', fontWeight: '500' }}>
+              ✓ {successMessage}
+            </div>
+          )}
           
           <div className={styles.content}>
             {/* Left Column: Images */}
@@ -346,37 +388,51 @@ export default function AnimalDetailsPage() {
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <button className={styles.modalClose} onClick={() => setShowAdoptModal(false)}>×</button>
             <h2>Cerere Adopție: {animal.name}</h2>
-            <p>Te rugăm să îți completezi datele de contact.</p>
-            <div className={styles.formRow}>
-              <label className={styles.formLabel}>Numele tău</label>
-              <input
-                className={styles.formInput}
-                type="text"
-                value={requesterName}
-                onChange={(e) => setRequesterName(e.target.value)}
-                placeholder="Numele complet"
-              />
-            </div>
-            <div className={styles.formRow}>
-              <label className={styles.formLabel}>Emailul tău</label>
-              <input
-                className={styles.formInput}
-                type="email"
-                value={requesterEmail}
-                onChange={(e) => setRequesterEmail(e.target.value)}
-                placeholder="you@example.com"
-              />
-            </div>
-            <div className={styles.formRow}>
-              <label className={styles.formLabel}>Telefonul tău</label>
-              <input
-                className={styles.formInput}
-                type="tel"
-                value={requesterPhone}
-                onChange={(e) => setRequesterPhone(e.target.value)}
-                placeholder="+40 7xx xxx xxx"
-              />
-            </div>
+            
+            {formError && (
+              <div style={{ color: '#dc2626', background: '#fee2e2', padding: '0.75rem', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                {formError}
+              </div>
+            )}
+            
+            {!isProfileComplete ? (
+              <>
+                <p>Te rugăm să îți completezi datele de contact.</p>
+                <div className={styles.formRow}>
+                  <label className={styles.formLabel}>Numele tău</label>
+                  <input
+                    className={styles.formInput}
+                    type="text"
+                    value={requesterName}
+                    onChange={(e) => setRequesterName(e.target.value)}
+                    placeholder="Numele complet"
+                  />
+                </div>
+                <div className={styles.formRow}>
+                  <label className={styles.formLabel}>Emailul tău</label>
+                  <input
+                    className={styles.formInput}
+                    type="email"
+                    value={requesterEmail}
+                    onChange={(e) => setRequesterEmail(e.target.value)}
+                    placeholder="you@example.com"
+                  />
+                </div>
+                <div className={styles.formRow}>
+                  <label className={styles.formLabel}>Telefonul tău</label>
+                  <input
+                    className={styles.formInput}
+                    type="tel"
+                    value={requesterPhone}
+                    onChange={(e) => setRequesterPhone(e.target.value)}
+                    placeholder="+40 7xx xxx xxx"
+                  />
+                </div>
+              </>
+            ) : (
+              <p>Informațiile de contact vor fi preluate automat din profilul tău.</p>
+            )}
+            
             <p>Dorești să incluzi un mesaj pentru adăpost?</p>
             <textarea
               className={styles.messageInput}

@@ -7,7 +7,7 @@ import Navbar from '@/components/Navbar'
 import styles from './profile.module.css'
 
 export default function ProfilePage() {
-  const { user, loading, signOut } = useAuth()
+  const { user, userRole, loading, signOut } = useAuth()
   const router = useRouter()
   
   const [firstName, setFirstName] = useState('')
@@ -38,6 +38,9 @@ export default function ProfilePage() {
   
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  
+  // My Requests State
+  const [myRequests, setMyRequests] = useState<any[]>([])
 
   useEffect(() => {
     if (!loading && !user) {
@@ -62,6 +65,23 @@ export default function ProfilePage() {
         if (data.adoption_profile) {
           setAdoptionProfile(prev => ({ ...prev, ...data.adoption_profile }))
         }
+      }
+      
+      // Fetch my adoption requests
+      const { data: requestsData, error: requestsError } = await supabase
+        .from('adoption_requests')
+        .select(`
+          *,
+          animals!inner(
+            id, name, species, shelter_id,
+            shelters (name, phone, address)
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        
+      if (requestsData) {
+        setMyRequests(requestsData)
       }
     }
     
@@ -190,8 +210,10 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className={styles.card}>
-              <h2 className={styles.sectionTitle}>1. Contextul Locuinței și Stilul de Viață</h2>
+            {userRole !== 'shelter_admin' && (
+              <>
+                <div className={styles.card}>
+                  <h2 className={styles.sectionTitle}>1. Contextul Locuinței și Stilul de Viață</h2>
               <p className={styles.sectionDesc}>Aceste întrebări ajută adăpostul să determine dacă mediul este compatibil cu animalul dorit.</p>
               
               <div className={styles.formGroup}>
@@ -378,7 +400,49 @@ export default function ProfilePage() {
                 </button>
               </div>
             </div>
+            </>
+            )}
           </form>
+
+          {userRole !== 'shelter_admin' && (
+          <div className={styles.card}>
+            <h2 className={styles.sectionTitle}>Cererile mele de adopție</h2>
+            {myRequests.length === 0 ? (
+              <p style={{ color: '#6b7280' }}>Nu ai trimis nicio cerere de adopție încă.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {myRequests.map((req) => (
+                  <div key={req.id} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{req.animals.name} ({req.animals.species})</h3>
+                      <span style={{
+                        padding: '0.25rem 0.5rem', 
+                        borderRadius: '999px', 
+                        fontSize: '0.85rem', 
+                        fontWeight: '600',
+                        background: req.status === 'approved' ? '#dcfce7' : req.status === 'rejected' ? '#fee2e2' : '#fef3c7',
+                        color: req.status === 'approved' ? '#166534' : req.status === 'rejected' ? '#dc2626' : '#92400e'
+                      }}>
+                        {req.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <p style={{ margin: '0.25rem 0', color: '#4b5563', fontSize: '0.9rem' }}>Adăpost: {req.animals?.shelters?.name}</p>
+                    
+                    {req.status === 'approved' && req.visit_date && (
+                      <div style={{ marginTop: '1rem', background: '#ecfdf5', padding: '1rem', borderRadius: '6px', border: '1px solid #10b981' }}>
+                        <p style={{ margin: '0', color: '#047857', fontWeight: 'bold' }}>🗓️ Vizită Programată: {new Date(req.visit_date).toLocaleString()}</p>
+                        {req.visit_message && (
+                          <p style={{ margin: '0.5rem 0 0 0', color: '#065f46', fontSize: '0.9rem' }}>Mesaj: {req.visit_message}</p>
+                        )}
+                        <p style={{ margin: '0.5rem 0 0 0', color: '#065f46', fontSize: '0.9rem' }}>Adresă: {req.animals?.shelters?.address} | Tel: {req.animals?.shelters?.phone}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          )}
 
           <div className={`${styles.card} ${styles.dangerZone}`}>
             <h2 className={`${styles.sectionTitle} ${styles.dangerTitle}`}>Atenție</h2>

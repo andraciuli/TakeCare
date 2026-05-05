@@ -16,18 +16,22 @@ export default function Navbar() {
         <Link href="/animals" className={styles.navLink}>
           Animals
         </Link>
-        <Link href="/matchmaker" className={styles.navLink}>
-          Matchmaker
-        </Link>
+        {userRole !== 'shelter_admin' && (
+          <Link href="/matchmaker" className={styles.navLink}>
+            Matchmaker
+          </Link>
+        )}
         <Link href="/education" className={styles.navLink}>
           Educație
         </Link>
         <Link href="/map" className={styles.navLink}>
           Map
         </Link>
-        <Link href="/favorites" className={styles.navLink}>
-          Favorites
-        </Link>
+        {userRole !== 'shelter_admin' && (
+          <Link href="/favorites" className={styles.navLink}>
+            Favorites
+          </Link>
+        )}
         {userRole === 'shelter_admin' && (
           <Link href="/dashboard" className={styles.navLink}>
             Dashboard

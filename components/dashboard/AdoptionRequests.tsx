@@ -7,6 +7,13 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
   const [requests, setRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Visit Scheduling Modal State
+  const [showModal, setShowModal] = useState(false)
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
+  const [visitDate, setVisitDate] = useState('')
+  const [visitMessage, setVisitMessage] = useState('')
+  const [isScheduling, setIsScheduling] = useState(false)
+
   useEffect(() => {
     fetchRequests()
   }, [shelterId])
@@ -32,32 +39,66 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
     }
   }
 
-  async function handleRequest(requestId: string, newStatus: 'approved' | 'rejected') {
+  async function handleReject(requestId: string) {
     try {
       const { error } = await supabase
         .from('adoption_requests')
         .update({
-          status: newStatus,
+          status: 'rejected',
           updated_at: new Date().toISOString(),
         })
         .eq('id', requestId)
 
       if (error) throw error
-
-      // If approved, update animal status
-      if (newStatus === 'approved') {
-        const request = requests.find(r => r.id === requestId)
-        if (request) {
-          await supabase
-            .from('animals')
-            .update({ status: 'adopted' })
-            .eq('id', request.animal_id)
-        }
-      }
-
       await fetchRequests()
     } catch (error: any) {
       alert('Error updating request: ' + error.message)
+    }
+  }
+
+  function openApproveModal(requestId: string) {
+    setSelectedRequestId(requestId)
+    setVisitDate('')
+    setVisitMessage('')
+    setShowModal(true)
+  }
+
+  async function confirmApproveAndSchedule() {
+    if (!selectedRequestId || !visitDate) {
+      alert('Please select a date and time for the visit.')
+      return
+    }
+
+    setIsScheduling(true)
+    try {
+      const { error } = await supabase
+        .from('adoption_requests')
+        .update({
+          status: 'approved',
+          visit_date: new Date(visitDate).toISOString(),
+          visit_message: visitMessage,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', selectedRequestId)
+
+      if (error) throw error
+
+      // Update animal status to pending or adopted
+      const request = requests.find(r => r.id === selectedRequestId)
+      if (request) {
+        await supabase
+          .from('animals')
+          .update({ status: 'adopted' }) // or 'pending' if you prefer it to be pending until the visit
+          .eq('id', request.animal_id)
+      }
+
+      setShowModal(false)
+      setSelectedRequestId(null)
+      await fetchRequests()
+    } catch (error: any) {
+      alert('Error scheduling visit: ' + error.message)
+    } finally {
+      setIsScheduling(false)
     }
   }
 
@@ -120,6 +161,13 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
                 </div>
               )}
 
+              {request.visit_date && (
+                <div className={styles.message} style={{ background: '#ecfdf5', borderColor: '#10b981', borderWidth: '1px', borderStyle: 'solid' }}>
+                  <p style={{ color: '#047857' }}><strong>Scheduled Visit:</strong> {new Date(request.visit_date).toLocaleString()}</p>
+                  {request.visit_message && <p style={{ color: '#065f46', marginTop: '0.5rem' }}>{request.visit_message}</p>}
+                </div>
+              )}
+
               <p className={styles.date}>
                 Requested: {new Date(request.created_at).toLocaleDateString()}
               </p>
@@ -127,21 +175,68 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
               {request.status === 'pending' && (
                 <div className={styles.actions}>
                   <button
-                    onClick={() => handleRequest(request.id, 'rejected')}
+                    onClick={() => handleReject(request.id)}
                     className={styles.rejectButton}
                   >
                     Reject
                   </button>
                   <button
-                    onClick={() => handleRequest(request.id, 'approved')}
+                    onClick={() => openApproveModal(request.id)}
                     className={styles.approveButton}
                   >
-                    Approve
+                    Approve & Schedule
                   </button>
                 </div>
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Schedule Visit Modal */}
+      {showModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3 className={styles.modalTitle}>Approve & Schedule Visit</h3>
+            
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Date & Time for Visit</label>
+              <input 
+                type="datetime-local" 
+                value={visitDate}
+                onChange={(e) => setVisitDate(e.target.value)}
+                min={new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
+                className={styles.input}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Message / Instructions (Optional)</label>
+              <textarea 
+                value={visitMessage}
+                onChange={(e) => setVisitMessage(e.target.value)}
+                placeholder="E.g., Please bring your ID. We look forward to meeting you!"
+                className={styles.textarea}
+              />
+            </div>
+
+            <div className={styles.modalActions}>
+              <button 
+                onClick={() => setShowModal(false)} 
+                className={styles.cancelButton}
+                disabled={isScheduling}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmApproveAndSchedule} 
+                className={styles.scheduleButton}
+                disabled={isScheduling || !visitDate}
+              >
+                {isScheduling ? 'Scheduling...' : 'Confirm & Approve'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
