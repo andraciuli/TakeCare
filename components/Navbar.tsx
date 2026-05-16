@@ -13,9 +13,11 @@ export default function Navbar() {
       </Link>
 
       <div className={styles.navLinks}>
-        <Link href="/animals" className={styles.navLink}>
-          Animals
-        </Link>
+        {userRole !== 'shelter_admin' && (
+          <Link href="/animals" className={styles.navLink}>
+            Animals
+          </Link>
+        )}
         {userRole !== 'shelter_admin' && (
           <Link href="/matchmaker" className={styles.navLink}>
             Matchmaker

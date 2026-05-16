@@ -22,6 +22,7 @@ export default function AddAnimalPage() {
     sex: 'male',
     description: '',
     status: 'available',
+    extra_questions: ''
   })
 
   const handleChange = (e: any) => {
@@ -82,6 +83,11 @@ export default function AddAnimalPage() {
         imageUrls = await Promise.all(uploadPromises)
       }
 
+      const parsedQuestions = formData.extra_questions
+        .split('\n')
+        .map(q => q.trim())
+        .filter(q => q.length > 0)
+
       // Insert animal with image URLs
       const { error } = await supabase
         .from('animals')
@@ -95,6 +101,7 @@ export default function AddAnimalPage() {
           description: formData.description || null,
           status: formData.status,
           image_url: imageUrls.length > 0 ? imageUrls : null,
+          extra_questions: parsedQuestions
         })
 
       if (error) throw error
@@ -210,6 +217,18 @@ export default function AddAnimalPage() {
                 className={styles.textarea}
                 rows={4}
                 placeholder="Describe the animal's personality, health, etc."
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Extra Questions for Adopters (Optional)</label>
+              <textarea
+                name="extra_questions"
+                value={formData.extra_questions}
+                onChange={handleChange}
+                className={styles.textarea}
+                rows={3}
+                placeholder="Write each question on a new line. Adopters will have to answer these when requesting to adopt."
               />
             </div>
 

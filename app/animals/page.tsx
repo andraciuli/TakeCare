@@ -2,6 +2,7 @@
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import styles from './animals.module.css'
@@ -23,7 +24,15 @@ export default function AnimalsPage() {
   const [formError, setFormError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [currentImageIndex, setCurrentImageIndex] = useState<Map<string, number>>(new Map())
-  const { user } = useAuth()
+  const [extraAnswers, setExtraAnswers] = useState<Record<string, string>>({})
+  const { user, userRole, shelterId } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (userRole === 'shelter_admin') {
+      router.push('/dashboard')
+    }
+  }, [userRole, router])
 
   // Filter States
   const [filterSpecies, setFilterSpecies] = useState<string>('all')
@@ -197,6 +206,7 @@ export default function AnimalsPage() {
     }
 
     setSelectedAnimal(animal)
+    setExtraAnswers({})
     if (!isProfileComplete) {
       setRequesterEmail(user?.email ?? '')
       if (!requesterName) setRequesterName(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '')
@@ -236,7 +246,8 @@ export default function AnimalsPage() {
           user_id: user.id,
           animal_id: selectedAnimal.id,
           status: 'pending',
-          message: adoptionMessage || null
+          message: adoptionMessage || null,
+          extra_answers: extraAnswers
         })
 
       if (error) throw error
@@ -521,6 +532,25 @@ export default function AnimalsPage() {
               </>
             ) : (
               <p>Informațiile de contact vor fi preluate automat din profilul tău.</p>
+            )}
+
+            {selectedAnimal?.extra_questions && selectedAnimal.extra_questions.length > 0 && (
+              <div style={{ marginTop: '1rem', marginBottom: '1rem' }}>
+                <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem', color: '#374151' }}>Întrebări suplimentare de la adăpost:</h3>
+                {selectedAnimal.extra_questions.map((q: string, i: number) => (
+                  <div key={i} className={styles.formRow}>
+                    <label className={styles.formLabel}>{q}</label>
+                    <input
+                      className={styles.formInput}
+                      type="text"
+                      value={extraAnswers[q] || ''}
+                      onChange={(e) => setExtraAnswers(prev => ({ ...prev, [q]: e.target.value }))}
+                      placeholder="Răspunsul tău..."
+                      required
+                    />
+                  </div>
+                ))}
+              </div>
             )}
             
             <p>Dorești să incluzi un mesaj pentru adăpost?</p>

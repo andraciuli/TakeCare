@@ -66,7 +66,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Check if user is logged in on mount
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Initial session fetch error:', error.message)
+        if (error.message.includes('Refresh Token') || error.message.includes('refresh_token')) {
+          supabase.auth.signOut()
+        }
+      }
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchUserData(session.user.id)

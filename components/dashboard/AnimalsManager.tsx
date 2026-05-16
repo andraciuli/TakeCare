@@ -45,6 +45,7 @@ export default function AnimalsManager({ shelterId }: { shelterId: string }) {
       sex: animal.sex,
       description: animal.description || '',
       status: animal.status,
+      extra_questions: animal.extra_questions ? animal.extra_questions.join('\n') : '',
     })
     setExistingImages(animal.image_url || [])
     setNewImages([])
@@ -126,6 +127,10 @@ export default function AnimalsManager({ shelterId }: { shelterId: string }) {
       // Combine existing images (not deleted) with new image URLs
       const finalImageUrls = [...existingImages, ...newImageUrls]
 
+      const parsedQuestions = editForm.extra_questions
+        ? editForm.extra_questions.split('\n').map((q: string) => q.trim()).filter((q: string) => q.length > 0)
+        : []
+
       const { error } = await supabase
         .from('animals')
         .update({
@@ -137,6 +142,7 @@ export default function AnimalsManager({ shelterId }: { shelterId: string }) {
           description: editForm.description || null,
           status: editForm.status,
           image_url: finalImageUrls.length > 0 ? finalImageUrls : null,
+          extra_questions: parsedQuestions
         })
         .eq('id', animalId)
 
@@ -272,6 +278,17 @@ export default function AnimalsManager({ shelterId }: { shelterId: string }) {
                       onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                       className={styles.textarea}
                       rows={3}
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>Extra Questions for Adopters (Optional)</label>
+                    <textarea
+                      value={editForm.extra_questions}
+                      onChange={(e) => setEditForm({ ...editForm, extra_questions: e.target.value })}
+                      className={styles.textarea}
+                      rows={3}
+                      placeholder="Write each question on a new line."
                     />
                   </div>
 

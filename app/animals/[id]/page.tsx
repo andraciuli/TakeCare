@@ -27,6 +27,7 @@ export default function AnimalDetailsPage() {
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(false)
   const [formError, setFormError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [extraAnswers, setExtraAnswers] = useState<Record<string, string>>({})
   
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   
@@ -150,6 +151,7 @@ export default function AnimalDetailsPage() {
       setRequesterEmail(user?.email ?? '')
       if (!requesterName) setRequesterName(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '')
     }
+    setExtraAnswers({})
     setShowAdoptModal(true)
   }
 
@@ -185,7 +187,8 @@ export default function AnimalDetailsPage() {
           user_id: user.id,
           animal_id: animal.id,
           status: 'pending',
-          message: adoptionMessage || null
+          message: adoptionMessage || null,
+          extra_answers: extraAnswers
         })
 
       if (error) throw error
@@ -431,6 +434,25 @@ export default function AnimalDetailsPage() {
               </>
             ) : (
               <p>Informațiile de contact vor fi preluate automat din profilul tău.</p>
+            )}
+            
+            {animal?.extra_questions && animal.extra_questions.length > 0 && (
+              <div style={{ marginTop: '1rem', marginBottom: '1rem' }}>
+                <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem', color: '#374151' }}>Întrebări suplimentare de la adăpost:</h3>
+                {animal.extra_questions.map((q: string, i: number) => (
+                  <div key={i} className={styles.formRow}>
+                    <label className={styles.formLabel}>{q}</label>
+                    <input
+                      className={styles.formInput}
+                      type="text"
+                      value={extraAnswers[q] || ''}
+                      onChange={(e) => setExtraAnswers(prev => ({ ...prev, [q]: e.target.value }))}
+                      placeholder="Răspunsul tău..."
+                      required
+                    />
+                  </div>
+                ))}
+              </div>
             )}
             
             <p>Dorești să incluzi un mesaj pentru adăpost?</p>

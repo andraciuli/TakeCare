@@ -154,6 +154,20 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
                 </div>
               )}
 
+              {request.extra_answers && Object.keys(request.extra_answers).length > 0 && (
+                <div className={styles.adoptionProfile} style={{ marginTop: '1rem' }}>
+                  <h4 style={{marginBottom: '0.5rem', color: '#374151'}}>Răspunsuri la întrebările suplimentare</h4>
+                  <div style={{background: '#f9fafb', padding: '1rem', borderRadius: '8px', fontSize: '0.9rem', color: '#4b5563', display: 'grid', gap: '0.5rem'}}>
+                    {Object.entries(request.extra_answers).map(([question, answer]) => (
+                      <div key={question} style={{ marginBottom: '0.5rem' }}>
+                        <strong>{question}</strong>
+                        <p style={{ margin: '0.2rem 0 0 0' }}>{String(answer)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {request.message && (
                 <div className={styles.message}>
                   <p><strong>Message:</strong></p>
