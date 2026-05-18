@@ -1,9 +1,17 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Quicksand } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/lib/AuthContext'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ 
+  subsets: ['latin'],
+  variable: '--font-inter'
+})
+
+const quicksand = Quicksand({ 
+  subsets: ['latin'],
+  variable: '--font-quicksand'
+})
 
 export const metadata: Metadata = {
   title: 'TakeCare - Pet Adoption',
@@ -17,7 +25,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${quicksand.variable} ${inter.className}`}>
         <AuthProvider>
           {children}
         </AuthProvider>

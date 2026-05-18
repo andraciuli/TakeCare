@@ -1,8 +1,8 @@
 .container {
-  background: white;
-  border-radius: 8px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
   padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 100, 116, 0.05);
   margin-bottom: 2rem;
 }
 
@@ -10,22 +10,25 @@
   width: 100%;
   min-height: 100px;
   padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-md);
   font-family: inherit;
   font-size: 1rem;
   margin-bottom: 0.5rem;
   resize: vertical;
   box-sizing: border-box;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
 }
 
 .textarea:focus {
   outline: none;
-  border-color: #0070f3;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-fixed);
 }
 
 .textarea:disabled {
-  background: #f5f5f5;
+  background: var(--surface-variant);
   cursor: not-allowed;
 }
 
@@ -37,30 +40,32 @@
 
 .charCounter {
   font-size: 0.875rem;
-  color: #666;
+  color: var(--on-surface-variant);
 }
 
 .charCounter.overLimit {
-  color: #dc2626;
+  color: var(--error);
   font-weight: 600;
 }
 
 .submitButton {
   padding: 0.5rem 1rem;
-  background: #0070f3;
-  color: white;
+  background: var(--primary);
+  color: var(--on-primary);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-weight: 500;
 }
 
 .submitButton:hover:not(:disabled) {
-  background: #0051cc;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
 }
 
 .submitButton:disabled {
-  background: #94a3b8;
+  background: var(--surface-variant);
+  color: var(--on-surface-variant);
   cursor: not-allowed;
   opacity: 0.6;
 }

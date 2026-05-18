@@ -52,6 +52,13 @@ const QUIZ_DATA: Question[] = [
 ]
 
 // ─── Education Content ───────────────────────────────────────
+const FIRST_TIME_TIPS = [
+  { icon: '⏳', title: 'Regula 3-3-3', text: 'Durează 3 zile să se calmeze, 3 săptămâni să învețe rutina și 3 luni să se simtă cu adevărat acasă. Răbdarea este esențială.' },
+  { icon: '🔌', title: 'Securizarea Casei', text: 'Ascunde cablurile, mută plantele toxice și securizează ferestrele (mai ales pentru pisici) înainte de sosirea noului membru.' },
+  { icon: '🛒', title: 'Cumpărături de Bază', text: 'Asigură-te că ai boluri, hrană, zgardă, lesă, pătuț și jucării pregătite din prima zi.' },
+  { icon: '🩺', title: 'Alegerea Veterinarului', text: 'Găsește un medic veterinar de încredere în apropiere și programează o primă vizită de cunoaștere în prima săptămână.' },
+]
+
 const CARE_TIPS = [
   { icon: '💉', title: 'Vaccinuri & Deparazitare', text: 'Vaccinurile anuale și tratamentele anti-paraziți (purici, căpușe, viermi) sunt esențiale pentru sănătatea animalului și a familiei tale. Consultă medicul veterinar pentru un calendar personalizat.' },
   { icon: '🍽️', title: 'Nutriție Corectă', text: 'Alege hrană de calitate, adaptată vârstei și taliei. Evită resturile de la masă — multe alimente umane (ciocolată, ceapă, struguri) sunt toxice pentru animale.' },
@@ -71,18 +78,29 @@ const SENIOR_REASONS = [
 ]
 
 const SPECIAL_NEEDS = [
-  { color: '#3b82f6', icon: '🦽', title: 'Dizabilități Fizice', text: 'Animale cu 3 picioare, probleme de mobilitate sau paralizie parțială pot duce o viață fericită și activă. Au nevoie de rampe, covor antiderapant și un stăpân răbdător.' },
-  { color: '#8b5cf6', icon: '🦴', title: 'Boli Cronice', text: 'Diabet, epilepsie, boli de inimă — cu medicație corectă și controale regulate, aceste animale oferă aceeași dragoste ca oricare altul.' },
-  { color: '#f59e0b', icon: '😰', title: 'Traume & Anxietate', text: 'Animalele din adăposturi au adesea traume din trecut. Cu răbdare, rutină și iubire constantă, ele se transformă spectaculos în câteva luni.' },
-  { color: '#10b981', icon: '👁️', title: 'Deficiențe Senzoriale', text: 'Pisicile sau câinii surzi ori orbi navighează surprinzător de bine în medii familiare. Au nevoie de un spațiu sigur și de comunincare tactilă.' },
+  { icon: '🦽', title: 'Dizabilități Fizice', text: 'Animale cu 3 picioare, probleme de mobilitate sau paralizie parțială pot duce o viață fericită și activă. Au nevoie de rampe, covor antiderapant și un stăpân răbdător.' },
+  { icon: '🦴', title: 'Boli Cronice', text: 'Diabet, epilepsie, boli de inimă — cu medicație corectă și controale regulate, aceste animale oferă aceeași dragoste ca oricare altul.' },
+  { icon: '😰', title: 'Traume & Anxietate', text: 'Animalele din adăposturi au adesea traume din trecut. Cu răbdare, rutină și iubire constantă, ele se transformă spectaculos în câteva luni.' },
+  { icon: '👁️', title: 'Deficiențe Senzoriale', text: 'Pisicile sau câinii surzi ori orbi navighează surprinzător de bine în medii familiare. Au nevoie de un spațiu sigur și de comunincare tactilă.' },
 ]
 
-// ─── Component ───────────────────────────────────────────────
+const RESOURCES = [
+  ...FIRST_TIME_TIPS.map(t => ({ ...t, category: 'Prima Adopție' })),
+  ...CARE_TIPS.map(t => ({ ...t, category: 'Îngrijire de Bază' })),
+  ...SENIOR_REASONS.map(t => ({ ...t, category: 'Adopție Senior' })),
+  ...SPECIAL_NEEDS.map(t => ({ ...t, category: 'Nevoi Speciale' })),
+]
+
+const CATEGORIES = ['Toate', 'Prima Adopție', 'Îngrijire de Bază', 'Adopție Senior', 'Nevoi Speciale'];
+
 export default function EducationPage() {
   const [currentQ, setCurrentQ] = useState(0)
   const [totalScore, setTotalScore] = useState(0)
   const [feedbackList, setFeedbackList] = useState<string[]>([])
   const [isFinished, setIsFinished] = useState(false)
+  
+  // Filtering state
+  const [activeFilter, setActiveFilter] = useState('Toate')
 
   const handleOption = (opt: Option) => {
     setTotalScore(prev => prev + opt.score)
@@ -97,29 +115,53 @@ export default function EducationPage() {
 
   const scoreCategory = totalScore >= 80 ? 'excellent' : totalScore >= 50 ? 'good' : 'needsWork'
 
+  // Component for rendering a single resource card
+  const ResourceCard = ({ item }: { item: any }) => (
+    <div className={styles.resourceCard}>
+      <div className={`${styles.resourceIconHeader} ${
+        item.category === 'Prima Adopție' ? styles.bgTeal :
+        item.category === 'Îngrijire de Bază' ? styles.bgBlue :
+        item.category === 'Adopție Senior' ? styles.bgPurple :
+        styles.bgTeal
+      }`}>
+        <span className={styles.largeIcon}>{item.icon}</span>
+      </div>
+      <div className={styles.resourceContent}>
+        <div className={styles.resourceTop}>
+          <span className={styles.resourceTag}>{item.category}</span>
+        </div>
+        <h3 className={styles.resourceTitle}>{item.title}</h3>
+        <p className={styles.resourceDesc}>{item.text}</p>
+      </div>
+    </div>
+  )
+
   return (
     <div className={styles.page}>
       <Navbar />
 
-      {/* ── Hero ── */}
-      <section className={styles.hero}>
-        <p className={styles.heroTagline}>📚 Centrul de Educație</p>
-        <h1 className={styles.heroTitle}>Tot ce trebuie să știi<br/>înainte să adopți</h1>
-        <p className={styles.heroSubtitle}>
-          Ghiduri de îngrijire, informații despre animale speciale și un test interactiv ca să fii sigur(ă) că ești pregătit(ă).
-        </p>
-      </section>
+      <div className={styles.maxWidth}>
+        {/* ── Hero ── */}
+        <section className={styles.hero}>
+          <div className={styles.heroContent}>
+            <h1 className={styles.heroTitle}>Centrul de Educație</h1>
+            <p className={styles.heroSubtitle}>
+              Tot ce trebuie să știi înainte să adopți. Parcurge ghidurile de îngrijire, informațiile despre animale speciale și completează testul interactiv ca să fii sigur(ă) că ești pregătit(ă).
+            </p>
+          </div>
+          <div className={styles.heroImageContainer}>
+            <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&q=80&w=800" alt="Dog reading" className={styles.heroImage} />
+          </div>
+        </section>
 
-      {/* ── Quiz Interactiv ── */}
-      <section className={styles.quizSection}>
-        <div className={styles.quizInner}>
-          <span className={styles.sectionTag} style={{ color: '#3b82f6' }}>✅ Test de Pregătire</span>
-          <h2 className={styles.sectionTitle} style={{ textAlign: 'center' }}>Ești pregătit(ă) să adopți?</h2>
-          <p className={styles.sectionSubtitle} style={{ margin: '0 auto 2.5rem', textAlign: 'center' }}>
-            Începe prin a-ți evalua cunoștințele. Răspunde sincer la aceste 5 întrebări înainte de a parcurge restul materialelor.
-          </p>
-
-          <div className={styles.quizCard}>
+        {/* ── Quiz Section (Integrated) ── */}
+        <div className={styles.quizWrapper}>
+          <div className={styles.quizContainer}>
+            <div className={styles.quizHeader}>
+              <h2 className={styles.quizTitle}>Ești pregătit(ă) să adopți?</h2>
+              <p className={styles.quizDesc}>Evaluează-ți cunoștințele. Răspunde sincer la aceste întrebări înainte de a lua o decizie.</p>
+            </div>
+            
             {!isFinished ? (
               <>
                 <div className={styles.progressContainer}>
@@ -141,7 +183,7 @@ export default function EducationPage() {
               </>
             ) : (
               <div className={styles.resultsSection}>
-                <h3 className={styles.resultTitle}>Rezultatul Tău</h3>
+                <h3 className={styles.questionText}>Rezultatul Tău</h3>
 
                 <div className={`${styles.scoreCircle} ${
                   scoreCategory === 'excellent' ? styles.scoreExcellent :
@@ -152,22 +194,22 @@ export default function EducationPage() {
                 </div>
 
                 {scoreCategory === 'excellent' && (
-                  <p className={styles.resultMessage}><strong>Felicitări!</strong> Ești complet pregătit(ă) să adopți! Ai cunoștințele și dedicarea necesară pentru a oferi o viață excelentă unui animal salvat.</p>
+                  <p><strong>Felicitări!</strong> Ești complet pregătit(ă) să adopți! Ai cunoștințele și dedicarea necesară pentru a oferi o viață excelentă unui animal salvat.</p>
                 )}
                 {scoreCategory === 'good' && (
-                  <p className={styles.resultMessage}><strong>Ești pe drumul cel bun!</strong> Ești un candidat bun, dar revizuiește informațiile de mai jos pentru câteva aspecte care necesită atenție.</p>
+                  <p><strong>Ești pe drumul cel bun!</strong> Ești un candidat bun, dar revizuiește informațiile de mai jos pentru câteva aspecte care necesită atenție.</p>
                 )}
                 {scoreCategory === 'needsWork' && (
-                  <p className={styles.resultMessage}><strong>Mai pregătește-te puțin!</strong> Adopția este o responsabilitate uriașă. Parcurge cu atenție materialul educațional de mai jos înainte de a lua o decizie.</p>
+                  <p><strong>Mai pregătește-te puțin!</strong> Adopția este o responsabilitate uriașă. Parcurge cu atenție materialele de mai jos înainte de a lua o decizie.</p>
                 )}
 
                 {feedbackList.length > 0 && (
                   <div className={styles.feedbackList}>
-                    <h4 className={styles.feedbackTitle}>La ce trebuie să lucrezi:</h4>
+                    <h4 style={{marginBottom: '1rem'}}>La ce trebuie să lucrezi:</h4>
                     {feedbackList.map((fb, i) => (
                       <div key={i} className={styles.feedbackItem}>
-                        <div className={styles.feedbackIcon}>!</div>
-                        <div className={styles.feedbackText}>{fb}</div>
+                        <div>⚠️</div>
+                        <div>{fb}</div>
                       </div>
                     ))}
                   </div>
@@ -187,68 +229,60 @@ export default function EducationPage() {
             )}
           </div>
         </div>
-      </section>
 
-      <hr className={styles.divider} />
-
-      {/* ── Îngrijire de Bază ── */}
-      <section className={styles.section}>
-        <span className={styles.sectionTag} style={{ color: '#3b82f6' }}>🩺 Îngrijire</span>
-        <h2 className={styles.sectionTitle}>Bazele îngrijirii unui animal de companie</h2>
-        <p className={styles.sectionSubtitle}>
-          Un animal sănătos înseamnă un animal fericit. Iată ce trebuie să știi din prima zi.
-        </p>
-        <div className={styles.cardsGrid}>
-          {CARE_TIPS.map((tip, i) => (
-            <div key={i} className={styles.card}>
-              <div className={styles.cardIcon}>{tip.icon}</div>
-              <h3 className={styles.cardTitle}>{tip.title}</h3>
-              <p className={styles.cardText}>{tip.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <hr className={styles.divider} />
-
-      {/* ── Animale Senior ── */}
-      <section className={styles.seniorSection}>
-        <div className={styles.seniorInner}>
-          <span className={styles.sectionTag}>🐾 Adopție Senior</span>
-          <h2 className={styles.sectionTitle}>De ce să adopți un animal senior?</h2>
-          <p className={styles.sectionSubtitle}>
-            Animalele bătrâne sunt cele mai puțin adoptate, dar pot fi cele mai recunoscătoare și ușor de îngrijit.
-          </p>
-          <div className={styles.seniorGrid}>
-            {SENIOR_REASONS.map((reason, i) => (
-              <div key={i} className={styles.seniorCard}>
-                <div className={styles.cardIcon}>{reason.icon}</div>
-                <h3 className={styles.cardTitle}>{reason.title}</h3>
-                <p className={styles.cardText}>{reason.text}</p>
-              </div>
+        {/* ── Informații Educaționale ── */}
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Biblioteca de Cunoștințe</h2>
+          <p className={styles.sectionSubtitle}>Citește toate informațiile noastre esențiale grupate pe subiecte.</p>
+          
+          <div className={styles.filtersRow}>
+            {CATEGORIES.map(filter => (
+              <button 
+                key={filter}
+                className={`${styles.filterPill} ${activeFilter === filter ? styles.active : ''}`}
+                onClick={() => setActiveFilter(filter)}
+              >
+                {filter}
+              </button>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* ── Nevoi Speciale ── */}
-      <section className={styles.section}>
-        <span className={styles.sectionTag} style={{ color: '#8b5cf6' }}>💜 Nevoi Speciale</span>
-        <h2 className={styles.sectionTitle}>Animale cu nevoi speciale</h2>
-        <p className={styles.sectionSubtitle}>
-          Diferit nu înseamnă mai puțin. Aceste animale oferă iubire necondiționată și au nevoie de o șansă.
-        </p>
-        <div className={styles.specialGrid}>
-          {SPECIAL_NEEDS.map((item, i) => (
-            <div key={i} className={styles.specialCard} style={{ borderLeftColor: item.color }}>
-              <div className={styles.cardIcon}>{item.icon}</div>
-              <h3 className={styles.cardTitle}>{item.title}</h3>
-              <p className={styles.cardText}>{item.text}</p>
+          {activeFilter === 'Toate' ? (
+            <div>
+              {CATEGORIES.filter(c => c !== 'Toate').map(category => (
+                <div key={category} style={{ marginBottom: '4rem' }}>
+                  <h3 style={{ 
+                    fontFamily: 'var(--font-quicksand)', 
+                    fontSize: '1.5rem', 
+                    marginBottom: '1.5rem', 
+                    color: 'var(--on-surface)',
+                    paddingBottom: '0.5rem',
+                    borderBottom: '2px solid var(--surface-variant)'
+                  }}>
+                    {category}
+                  </h3>
+                  <div className={styles.resourcesGrid}>
+                    {RESOURCES.filter(r => r.category === category).map((item, idx) => (
+                      <ResourceCard key={idx} item={item} />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </section>
-
+          ) : (
+            <div className={styles.resourcesGrid}>
+              {RESOURCES.filter(r => r.category === activeFilter).map((item, idx) => (
+                <ResourceCard key={idx} item={item} />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+      
+      {/* Footer */}
+      <footer style={{ borderTop: '1px solid var(--outline-variant)', padding: '2rem', textAlign: 'center', color: 'var(--on-surface-variant)', fontSize: '0.9rem', marginTop: '4rem' }}>
+        <p>© 2024 TakeCare. Nurturing connections between hearts and paws.</p>
+      </footer>
     </div>
   )
 }

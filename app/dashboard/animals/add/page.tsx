@@ -22,7 +22,14 @@ export default function AddAnimalPage() {
     sex: 'male',
     description: '',
     status: 'available',
-    extra_questions: ''
+    extra_questions: '',
+    characteristics: {
+      vaccinated: false,
+      sterilized: false,
+      dewormed: false,
+      house_trained: false,
+      litter_trained: false
+    }
   })
 
   const handleChange = (e: any) => {
@@ -101,7 +108,8 @@ export default function AddAnimalPage() {
           description: formData.description || null,
           status: formData.status,
           image_url: imageUrls.length > 0 ? imageUrls : null,
-          extra_questions: parsedQuestions
+          extra_questions: parsedQuestions,
+          characteristics: formData.characteristics
         })
 
       if (error) throw error
@@ -218,6 +226,52 @@ export default function AddAnimalPage() {
                 rows={4}
                 placeholder="Describe the animal's personality, health, etc."
               />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Characteristics</label>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.characteristics.vaccinated}
+                    onChange={(e) => setFormData({ ...formData, characteristics: { ...formData.characteristics, vaccinated: e.target.checked } })}
+                  />
+                  Vaccinated
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.characteristics.sterilized}
+                    onChange={(e) => setFormData({ ...formData, characteristics: { ...formData.characteristics, sterilized: e.target.checked } })}
+                  />
+                  Sterilized
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.characteristics.dewormed}
+                    onChange={(e) => setFormData({ ...formData, characteristics: { ...formData.characteristics, dewormed: e.target.checked } })}
+                  />
+                  Dewormed
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.characteristics.house_trained}
+                    onChange={(e) => setFormData({ ...formData, characteristics: { ...formData.characteristics, house_trained: e.target.checked } })}
+                  />
+                  House Trained (Dogs)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.characteristics.litter_trained}
+                    onChange={(e) => setFormData({ ...formData, characteristics: { ...formData.characteristics, litter_trained: e.target.checked } })}
+                  />
+                  Litter Trained (Cats)
+                </label>
+              </div>
             </div>
 
             <div className={styles.formGroup}>

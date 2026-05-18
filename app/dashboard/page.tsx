@@ -6,14 +6,15 @@ import Navbar from '@/components/Navbar'
 import AnimalsManager from '@/components/dashboard/AnimalsManager'
 import AdoptionRequests from '@/components/dashboard/AdoptionRequests'
 import ShelterEditor from '@/components/dashboard/ShelterEditor'
+import DashboardOverview from '@/components/dashboard/DashboardOverview'
 import styles from './dashboard.module.css'
 
-type TabType = 'animals' | 'requests' | 'shelter'
+type TabType = 'overview' | 'shelter' | 'animals' | 'requests'
 
 export default function DashboardPage() {
   const { user, userRole, shelterId, loading } = useAuth()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<TabType>('animals')
+  const [activeTab, setActiveTab] = useState<TabType>('overview')
 
   useEffect(() => {
     if (!loading) {
@@ -36,40 +37,45 @@ export default function DashboardPage() {
   }
 
   return (
-    <>
+    <div className={styles.pageContainer}>
       <Navbar />
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>Shelter Dashboard</h1>
+      
+      <div className={styles.dashboardLayout}>
+        <aside className={styles.sidebar}>
+          <h2 className={styles.sidebarTitle}>Manager</h2>
+          <button 
+            className={activeTab === 'overview' ? styles.navItemActive : styles.navItem}
+            onClick={() => setActiveTab('overview')}
+          >
+            📊 Dashboard Home
+          </button>
+          <button 
+            className={activeTab === 'shelter' ? styles.navItemActive : styles.navItem}
+            onClick={() => setActiveTab('shelter')}
+          >
+            📝 Profile Editor
+          </button>
+          <button 
+            className={activeTab === 'animals' ? styles.navItemActive : styles.navItem}
+            onClick={() => setActiveTab('animals')}
+          >
+            🐾 Manage Animals
+          </button>
+          <button 
+            className={activeTab === 'requests' ? styles.navItemActive : styles.navItem}
+            onClick={() => setActiveTab('requests')}
+          >
+            📅 Appointments
+          </button>
+        </aside>
 
-          <div className={styles.tabs}>
-            <button
-              className={activeTab === 'animals' ? styles.tabActive : styles.tab}
-              onClick={() => setActiveTab('animals')}
-            >
-              Animals
-            </button>
-            <button
-              className={activeTab === 'requests' ? styles.tabActive : styles.tab}
-              onClick={() => setActiveTab('requests')}
-            >
-              Adoption Requests
-            </button>
-            <button
-              className={activeTab === 'shelter' ? styles.tabActive : styles.tab}
-              onClick={() => setActiveTab('shelter')}
-            >
-              Shelter Details
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.content}>
+        <main className={styles.mainContent}>
+          {activeTab === 'overview' && <DashboardOverview shelterId={shelterId} />}
+          {activeTab === 'shelter' && <ShelterEditor shelterId={shelterId} />}
           {activeTab === 'animals' && <AnimalsManager shelterId={shelterId} />}
           {activeTab === 'requests' && <AdoptionRequests shelterId={shelterId} />}
-          {activeTab === 'shelter' && <ShelterEditor shelterId={shelterId} />}
-        </div>
+        </main>
       </div>
-    </>
+    </div>
   )
 }

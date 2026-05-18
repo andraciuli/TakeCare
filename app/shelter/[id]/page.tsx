@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
-import styles from '../../animals/animals.module.css'
+import styles from './shelter.module.css'
 
 export default function ShelterPage() {
   const params = useParams()
@@ -13,7 +13,6 @@ export default function ShelterPage() {
   const [animals, setAnimals] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [currentImageIndex, setCurrentImageIndex] = useState<Map<string, number>>(new Map())
 
   useEffect(() => {
     if (!shelterId) return
@@ -47,116 +46,108 @@ export default function ShelterPage() {
     fetchShelterAndAnimals()
   }, [shelterId])
 
-  function handleNextImage(animalId: string, totalImages: number, e: React.MouseEvent) {
-    e.stopPropagation()
-    setCurrentImageIndex(prev => {
-      const newMap = new Map(prev)
-      const current = newMap.get(animalId) || 0
-      newMap.set(animalId, (current + 1) % totalImages)
-      return newMap
-    })
-  }
-
-  function handlePrevImage(animalId: string, totalImages: number, e: React.MouseEvent) {
-    e.stopPropagation()
-    setCurrentImageIndex(prev => {
-      const newMap = new Map(prev)
-      const current = newMap.get(animalId) || 0
-      newMap.set(animalId, current === 0 ? totalImages - 1 : current - 1)
-      return newMap
-    })
-  }
-
   if (loading) {
     return (
-      <div className={styles.loading}>
-        <p>Loading shelter...</p>
+      <div className={styles.page}>
+        <Navbar />
+        <div className={styles.loading}>Loading shelter profile...</div>
       </div>
     )
   }
 
-  if (error) {
+  if (error || !shelter) {
     return (
-      <div className={styles.error}>
-        <div style={{ textAlign: 'center' }}>
-          <p className={styles.errorText}>Error: {error}</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!shelter) {
-    return (
-      <div className={styles.loading}>
-        <p>Shelter not found.</p>
+      <div className={styles.page}>
+        <Navbar />
+        <div className={styles.error}>Error: {error || 'Shelter not found.'}</div>
       </div>
     )
   }
 
   return (
-    <>
+    <div className={styles.page}>
       <Navbar />
+      
       <div className={styles.container}>
-        <div className={styles.maxWidth}>
-          <h1 className={styles.title}>{shelter.name}</h1>
-          {shelter.address && <p className={styles.shelterAddress}>{shelter.address}</p>}
-          {shelter.phone && <p className={styles.info}><strong>Phone:</strong> {shelter.phone}</p>}
-          {shelter.email && <p className={styles.info}><strong>Email:</strong> {shelter.email}</p>}
+        <div className={styles.previewCard}>
+          <div className={styles.previewImage}>
+            {/* Fallback to a nice Unsplash image if no specific cover image exists */}
+            <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1200&h=400&fit=crop" alt="Cover" />
+            <div className={styles.previewOverlay}>
+              <h1 className={styles.title}>{shelter.name}</h1>
+              <p className={styles.address}>📍 {shelter.address}</p>
+              
+              {shelter.instagram && (
+                <a href={shelter.instagram.startsWith('http') ? shelter.instagram : `https://instagram.com/${shelter.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" className={styles.socialLink}>
+                  📸 {shelter.instagram}
+                </a>
+              )}
+            </div>
+          </div>
+          
+          <div className={styles.previewContent}>
+            <div className={styles.previewMission}>
+              <h5>Our Mission</h5>
+              <p>"{shelter.description || 'Our mission is to bridge the gap between abandoned souls and loving families through education, patience, and warmth.'}"</p>
+              
+              <div className={styles.infoGrid}>
+                {shelter.schedule && (
+                  <div>
+                    <h6>🕒 Operating Hours</h6>
+                    <p>{shelter.schedule}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className={styles.previewActions}>
+              {shelter.email && (
+                <a href={`mailto:${shelter.email}`} className={styles.previewActionItem}>
+                  <span>✉️</span> Email Us
+                </a>
+              )}
+              {shelter.phone && (
+                <a href={`tel:${shelter.phone}`} className={styles.previewActionItem}>
+                  <span>📞</span> Call Now
+                </a>
+              )}
+              <a href="#animals" className={styles.previewButton}>View Animals</a>
+            </div>
+          </div>
+        </div>
 
-          <h2 style={{ marginTop: 24 }}>Animals at this shelter</h2>
-
+        {/* Animals Grid */}
+        <div id="animals" className={styles.animalsSection}>
+          <h2 className={styles.sectionTitle}>Animals looking for a home ({animals.length})</h2>
+          
           {animals.length === 0 ? (
-            <p>No animals currently listed for this shelter.</p>
+            <p className={styles.emptyText}>No animals currently listed for this shelter.</p>
           ) : (
             <div className={styles.grid}>
               {animals.map((animal) => (
-                <div key={animal.id} className={styles.card}>
-                  {animal.image_url && animal.image_url.length > 0 && (
-                    <div className={styles.imageContainer}>
-                      <img
-                        src={animal.image_url[currentImageIndex.get(animal.id) || 0]}
-                        alt={animal.name}
-                        className={styles.animalImage}
-                      />
-                      {animal.image_url.length > 1 && (
-                        <>
-                          <button
-                            className={styles.imageNavLeft}
-                            onClick={(e) => handlePrevImage(animal.id, animal.image_url.length, e)}
-                            aria-label="Previous image"
-                          >
-                            ‹
-                          </button>
-                          <button
-                            className={styles.imageNavRight}
-                            onClick={(e) => handleNextImage(animal.id, animal.image_url.length, e)}
-                            aria-label="Next image"
-                          >
-                            ›
-                          </button>
-                          <span className={styles.imageCount}>
-                            {(currentImageIndex.get(animal.id) || 0) + 1} / {animal.image_url.length}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  )}
-                  <h3 className={styles.cardTitle}>{animal.name}</h3>
-                  <p className={styles.info}><strong>Species:</strong> {animal.species}</p>
-                  {animal.breed && <p className={styles.info}><strong>Breed:</strong> {animal.breed}</p>}
-                  {animal.age && <p className={styles.info}><strong>Age:</strong> {animal.age} years</p>}
-                  <span className={`${styles.badge} ${
-                    animal.status === 'available' ? styles.badgeAvailable : styles.badgeAdopted
-                  }`}>{animal.status}</span>
-                  <div style={{ marginTop: 10 }}>
-                    <Link href={`/animals/${animal.id}`} className={styles.loginLink}>View details</Link>
+                <Link href={`/animals/${animal.id}`} key={animal.id} className={styles.animalCard}>
+                  <div className={styles.animalImageWrapper}>
+                    {animal.image_url && animal.image_url.length > 0 ? (
+                      <img src={animal.image_url[0]} alt={animal.name} className={styles.animalImage} />
+                    ) : (
+                      <div className={styles.noImage}>No Image</div>
+                    )}
+                    <span className={`${styles.statusBadge} ${animal.status === 'available' ? styles.statusAvailable : styles.statusAdopted}`}>
+                      {animal.status}
+                    </span>
                   </div>
-                </div>
+                  <div className={styles.animalInfo}>
+                    <h3 className={styles.animalName}>{animal.name}</h3>
+                    <p className={styles.animalDetails}>
+                      {animal.species} • {animal.breed || 'Unknown breed'} • {animal.age ? `${animal.age} yrs` : 'Unknown age'}
+                    </p>
+                  </div>
+                </Link>
               ))}
             </div>
           )}
         </div>
       </div>
-    </>
+    </div>
   )
 }

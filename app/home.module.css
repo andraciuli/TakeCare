@@ -6,8 +6,8 @@
 
 .nav {
   padding: 1rem 2rem;
-  background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--surface);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -25,34 +25,35 @@
 }
 
 .userEmail {
-  color: #666;
+  color: var(--on-surface-variant);
   font-size: 0.875rem;
 }
 
 .logoutButton {
-  background: #dc2626;
-  color: white;
+  background: var(--error);
+  color: var(--on-error);
   padding: 0.5rem 1rem;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   border: none;
   font-weight: 500;
   cursor: pointer;
 }
 
 .logoutButton:hover {
-  background: #b91c1c;
+  filter: brightness(0.9);
 }
 
 .loginLink {
-  background: #0070f3;
-  color: white;
+  background: var(--primary);
+  color: var(--on-primary);
   padding: 0.5rem 1rem;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   font-weight: 500;
 }
 
 .loginLink:hover {
-  background: #0051cc;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
   text-decoration: none;
 }
 
@@ -61,7 +62,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(to bottom, #eff6ff, white);
 }
 
 .hero {
@@ -73,11 +73,12 @@
   font-size: 3rem;
   font-weight: bold;
   margin-bottom: 1rem;
+  color: var(--primary);
 }
 
 .subtitle {
   font-size: 1.25rem;
-  color: #666;
+  color: var(--on-surface-variant);
   margin-bottom: 2rem;
 }
 
@@ -88,26 +89,28 @@
 }
 
 .primaryButton {
-  background: #0070f3;
-  color: white;
+  background: var(--primary);
+  color: var(--on-primary);
   padding: 0.75rem 1.5rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   font-weight: 500;
 }
 
 .primaryButton:hover {
-  background: #0051cc;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
   text-decoration: none;
 }
 
 .secondaryButton {
-  border: 1px solid #ddd;
+  border: 1px solid var(--outline);
+  color: var(--primary);
   padding: 0.75rem 1.5rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   font-weight: 500;
 }
 
 .secondaryButton:hover {
-  background: #f5f5f5;
+  background: var(--surface-variant);
   text-decoration: none;
 }

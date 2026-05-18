@@ -1,8 +1,8 @@
 .card {
-  background: white;
-  border-radius: 8px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
   padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 100, 116, 0.05);
 }
 
 .header {
@@ -19,18 +19,18 @@
 
 .authorName {
   font-weight: 600;
-  color: #333;
+  color: var(--on-surface);
 }
 
 .timestamp {
   font-size: 0.875rem;
-  color: #999;
+  color: var(--on-surface-variant);
 }
 
 .content {
   font-size: 1rem;
   line-height: 1.5;
-  color: #333;
+  color: var(--on-surface);
   margin-bottom: 1rem;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -40,7 +40,7 @@
 .deleteButton {
   background: none;
   border: none;
-  color: #dc2626;
+  color: var(--error);
   cursor: pointer;
   font-size: 0.875rem;
   padding: 0;

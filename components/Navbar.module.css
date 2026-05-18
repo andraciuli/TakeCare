@@ -1,7 +1,7 @@
 .nav {
   padding: 1rem 2rem;
-  background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--surface);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -11,12 +11,12 @@
 .logo {
   font-size: 1.25rem;
   font-weight: bold;
-  color: #333;
+  color: var(--primary);
   text-decoration: none;
 }
 
 .logo:hover {
-  color: #0070f3;
+  color: var(--primary-container);
   text-decoration: none;
 }
 
@@ -27,14 +27,14 @@
 }
 
 .navLink {
-  color: #666;
+  color: var(--on-surface-variant);
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s;
 }
 
 .navLink:hover {
-  color: #0070f3;
+  color: var(--primary);
   text-decoration: none;
 }
 
@@ -45,39 +45,40 @@
 }
 
 .userEmail {
-  color: #666;
+  color: var(--on-surface-variant);
   font-size: 0.875rem;
   transition: color 0.2s;
 }
 
 .userEmail:hover {
-  color: #0070f3;
+  color: var(--primary);
 }
 
 .logoutButton {
-  background: #dc2626;
-  color: white;
+  background: var(--error);
+  color: var(--on-error);
   padding: 0.5rem 1rem;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   border: none;
   font-weight: 500;
   cursor: pointer;
 }
 
 .logoutButton:hover {
-  background: #b91c1c;
+  filter: brightness(0.9);
 }
 
 .loginLink {
-  background: #0070f3;
-  color: white;
+  background: var(--primary);
+  color: var(--on-primary);
   padding: 0.5rem 1rem;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   font-weight: 500;
   text-decoration: none;
 }
 
 .loginLink:hover {
-  background: #0051cc;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
   text-decoration: none;
 }

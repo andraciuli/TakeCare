@@ -46,6 +46,7 @@ export default function AnimalsManager({ shelterId }: { shelterId: string }) {
       description: animal.description || '',
       status: animal.status,
       extra_questions: animal.extra_questions ? animal.extra_questions.join('\n') : '',
+      characteristics: animal.characteristics || { vaccinated: false, sterilized: false, dewormed: false, house_trained: false, litter_trained: false }
     })
     setExistingImages(animal.image_url || [])
     setNewImages([])
@@ -142,7 +143,8 @@ export default function AnimalsManager({ shelterId }: { shelterId: string }) {
           description: editForm.description || null,
           status: editForm.status,
           image_url: finalImageUrls.length > 0 ? finalImageUrls : null,
-          extra_questions: parsedQuestions
+          extra_questions: parsedQuestions,
+          characteristics: editForm.characteristics
         })
         .eq('id', animalId)
 
@@ -279,6 +281,52 @@ export default function AnimalsManager({ shelterId }: { shelterId: string }) {
                       className={styles.textarea}
                       rows={3}
                     />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>Characteristics</label>
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={editForm.characteristics?.vaccinated || false}
+                          onChange={(e) => setEditForm({ ...editForm, characteristics: { ...editForm.characteristics, vaccinated: e.target.checked } })}
+                        />
+                        Vaccinated
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={editForm.characteristics?.sterilized || false}
+                          onChange={(e) => setEditForm({ ...editForm, characteristics: { ...editForm.characteristics, sterilized: e.target.checked } })}
+                        />
+                        Sterilized
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={editForm.characteristics?.dewormed || false}
+                          onChange={(e) => setEditForm({ ...editForm, characteristics: { ...editForm.characteristics, dewormed: e.target.checked } })}
+                        />
+                        Dewormed
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={editForm.characteristics?.house_trained || false}
+                          onChange={(e) => setEditForm({ ...editForm, characteristics: { ...editForm.characteristics, house_trained: e.target.checked } })}
+                        />
+                        House Trained (Dogs)
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={editForm.characteristics?.litter_trained || false}
+                          onChange={(e) => setEditForm({ ...editForm, characteristics: { ...editForm.characteristics, litter_trained: e.target.checked } })}
+                        />
+                        Litter Trained (Cats)
+                      </label>
+                    </div>
                   </div>
 
                   <div className={styles.formGroup}>

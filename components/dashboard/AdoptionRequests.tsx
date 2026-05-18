@@ -6,6 +6,8 @@ import styles from './AdoptionRequests.module.css'
 export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
   const [requests, setRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeFilter, setActiveFilter] = useState('All Status')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // Visit Scheduling Modal State
   const [showModal, setShowModal] = useState(false)
@@ -24,7 +26,7 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
         .from('adoption_requests')
         .select(`
           *,
-          animals!inner(id, name, species, shelter_id),
+          animals!inner(id, name, species, breed, shelter_id),
           users!inner(email, first_name, last_name, phone, adoption_profile)
         `)
         .eq('animals.shelter_id', shelterId)
@@ -88,7 +90,7 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
       if (request) {
         await supabase
           .from('animals')
-          .update({ status: 'adopted' }) // or 'pending' if you prefer it to be pending until the visit
+          .update({ status: 'adopted' })
           .eq('id', request.animal_id)
       }
 
@@ -102,108 +104,168 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
     }
   }
 
+  // Filtering Logic
+  const filteredRequests = requests.filter(r => {
+    if (activeFilter === 'All Status') return true;
+    if (activeFilter === 'New' && r.status === 'pending') return true;
+    if (activeFilter === 'Under Review' && r.status === 'under_review') return true;
+    if (activeFilter === 'Interview Scheduled' && r.status === 'approved') return true;
+    if (activeFilter === 'Declined' && r.status === 'rejected') return true;
+    return false;
+  })
+
+  // Stats Logic
+  const stats = {
+    new: requests.filter(r => r.status === 'pending').length,
+    underReview: requests.filter(r => r.status === 'under_review').length,
+    scheduled: requests.filter(r => r.status === 'approved').length,
+    approved: requests.filter(r => r.status === 'approved' && new Date(r.updated_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length,
+  }
+
+  const FILTERS = ['All Status', 'New', 'Under Review', 'Interview Scheduled', 'Approved', 'Declined'];
+
   if (loading) {
     return <div className={styles.loading}>Loading requests...</div>
   }
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>Adoption Requests</h2>
+      <div className={styles.header}>
+        <h2 className={styles.title}>Adoption Requests</h2>
+        <p className={styles.subtitle}>Manage and review incoming applications from prospective pet parents.</p>
+      </div>
 
-      {requests.length === 0 ? (
-        <div className={styles.empty}>
-          <p>No adoption requests yet.</p>
+      <div className={styles.statsGrid}>
+        <div className={`${styles.statCard} ${styles.bgPrimary}`}>
+          <p className={styles.statLabel}>NEW REQUESTS</p>
+          <p className={styles.statValue}>{stats.new.toString().padStart(2, '0')}</p>
         </div>
-      ) : (
-        <div className={styles.list}>
-          {requests.map((request) => (
-            <div key={request.id} className={styles.card}>
-              <div className={styles.cardHeader}>
-                <div>
-                  <h3 className={styles.animalName}>{request.animals.name}</h3>
-                  <p className={styles.species}>{request.animals.species}</p>
-                </div>
-                <span className={`${styles.badge} ${styles[`badge${request.status.charAt(0).toUpperCase() + request.status.slice(1)}`]}`}>
-                  {request.status}
-                </span>
-              </div>
+        <div className={`${styles.statCard} ${styles.bgWhite}`}>
+          <p className={styles.statLabelDark}>UNDER REVIEW</p>
+          <p className={styles.statValueDark}>{stats.underReview.toString().padStart(2, '0')}</p>
+        </div>
+        <div className={`${styles.statCard} ${styles.bgWhite}`}>
+          <p className={styles.statLabelDark}>SCHEDULED</p>
+          <p className={styles.statValueDark}>{stats.scheduled.toString().padStart(2, '0')}</p>
+        </div>
+        <div className={`${styles.statCard} ${styles.bgGreen}`}>
+          <p className={styles.statLabel}>APPROVED THIS WEEK</p>
+          <p className={styles.statValue}>{stats.approved.toString().padStart(2, '0')}</p>
+        </div>
+      </div>
 
-              <div className={styles.userInfo}>
-                <p><strong>Applicant:</strong> {request.users.email}</p>
-                {request.users.first_name && (
-                  <p><strong>Name:</strong> {request.users.first_name} {request.users.last_name}</p>
-                )}
-                {request.users.phone && (
-                  <p><strong>Phone:</strong> {request.users.phone}</p>
-                )}
-              </div>
-
-              {request.users.adoption_profile && Object.keys(request.users.adoption_profile).length > 0 && (
-                <div className={styles.adoptionProfile}>
-                  <h4 style={{marginTop: '1rem', marginBottom: '0.5rem', color: '#374151'}}>Adoption Profile / Interview</h4>
-                  <div style={{background: '#f9fafb', padding: '1rem', borderRadius: '8px', fontSize: '0.9rem', color: '#4b5563', display: 'grid', gap: '0.5rem'}}>
-                    {request.users.adoption_profile.housing_type && <p><strong>Housing:</strong> {request.users.adoption_profile.housing_type} ({request.users.adoption_profile.housing_status})</p>}
-                    {request.users.adoption_profile.household_members && <p><strong>Household:</strong> {request.users.adoption_profile.household_members}</p>}
-                    {request.users.adoption_profile.other_pets && <p><strong>Other Pets:</strong> {request.users.adoption_profile.other_pets}</p>}
-                    {request.users.adoption_profile.hours_alone && <p><strong>Hours Alone:</strong> {request.users.adoption_profile.hours_alone}</p>}
-                    {request.users.adoption_profile.physical_activity && <p><strong>Activity:</strong> {request.users.adoption_profile.physical_activity}</p>}
-                    {request.users.adoption_profile.long_term_commitment && <p><strong>Long-term Commitment:</strong> {request.users.adoption_profile.long_term_commitment}</p>}
-                    {request.users.adoption_profile.adoption_motivation && <p><strong>Motivation:</strong> {request.users.adoption_profile.adoption_motivation}</p>}
-                    {request.users.adoption_profile.sleeping_place && <p><strong>Sleeping Place:</strong> {request.users.adoption_profile.sleeping_place}</p>}
-                  </div>
-                </div>
-              )}
-
-              {request.extra_answers && Object.keys(request.extra_answers).length > 0 && (
-                <div className={styles.adoptionProfile} style={{ marginTop: '1rem' }}>
-                  <h4 style={{marginBottom: '0.5rem', color: '#374151'}}>Răspunsuri la întrebările suplimentare</h4>
-                  <div style={{background: '#f9fafb', padding: '1rem', borderRadius: '8px', fontSize: '0.9rem', color: '#4b5563', display: 'grid', gap: '0.5rem'}}>
-                    {Object.entries(request.extra_answers).map(([question, answer]) => (
-                      <div key={question} style={{ marginBottom: '0.5rem' }}>
-                        <strong>{question}</strong>
-                        <p style={{ margin: '0.2rem 0 0 0' }}>{String(answer)}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {request.message && (
-                <div className={styles.message}>
-                  <p><strong>Message:</strong></p>
-                  <p>{request.message}</p>
-                </div>
-              )}
-
-              {request.visit_date && (
-                <div className={styles.message} style={{ background: '#ecfdf5', borderColor: '#10b981', borderWidth: '1px', borderStyle: 'solid' }}>
-                  <p style={{ color: '#047857' }}><strong>Scheduled Visit:</strong> {new Date(request.visit_date).toLocaleString()}</p>
-                  {request.visit_message && <p style={{ color: '#065f46', marginTop: '0.5rem' }}>{request.visit_message}</p>}
-                </div>
-              )}
-
-              <p className={styles.date}>
-                Requested: {new Date(request.created_at).toLocaleDateString()}
-              </p>
-
-              {request.status === 'pending' && (
-                <div className={styles.actions}>
-                  <button
-                    onClick={() => handleReject(request.id)}
-                    className={styles.rejectButton}
-                  >
-                    Reject
-                  </button>
-                  <button
-                    onClick={() => openApproveModal(request.id)}
-                    className={styles.approveButton}
-                  >
-                    Approve & Schedule
-                  </button>
-                </div>
-              )}
-            </div>
+      <div className={styles.filterBar}>
+        <div className={styles.searchWrapper}>
+          <span className={styles.searchIcon}>🔍</span>
+          <input type="text" placeholder="Search applicant or animal..." className={styles.searchInput} />
+        </div>
+        <div className={styles.filterPills}>
+          {FILTERS.map(filter => (
+            <button 
+              key={filter} 
+              className={`${styles.filterPill} ${activeFilter === filter ? styles.pillActive : ''}`}
+              onClick={() => setActiveFilter(filter)}
+            >
+              {filter}
+            </button>
           ))}
+        </div>
+      </div>
+
+      <div className={styles.list}>
+        {filteredRequests.length === 0 ? (
+          <div className={styles.empty}>
+            <p>No adoption requests found for this filter.</p>
+          </div>
+        ) : (
+          filteredRequests.map((request) => {
+            const isExpanded = expandedId === request.id;
+            const name = request.users.first_name ? `${request.users.first_name} ${request.users.last_name}` : request.users.email;
+            const avatarInitial = name.charAt(0).toUpperCase();
+
+            // Status Map
+            let tagClass = styles.tagNew;
+            let tagLabel = 'NEW';
+            if (request.status === 'under_review') { tagClass = styles.tagReview; tagLabel = 'UNDER REVIEW'; }
+            else if (request.status === 'approved') { tagClass = styles.tagScheduled; tagLabel = 'INTERVIEW SCHEDULED'; }
+            else if (request.status === 'rejected') { tagClass = styles.tagDeclined; tagLabel = 'DECLINED'; }
+
+            return (
+              <div key={request.id} className={styles.requestItemContainer}>
+                <div 
+                  className={styles.requestItem}
+                  onClick={() => setExpandedId(isExpanded ? null : request.id)}
+                >
+                  <div className={styles.userInfo}>
+                    <div className={styles.avatar}>{avatarInitial}</div>
+                    <div>
+                      <h4 className={styles.applicantName}>{name}</h4>
+                      <p className={styles.petInfo}>
+                        🐾 {request.animals.name} ({request.animals.breed || request.animals.species}) <span className={styles.dot}>•</span> {new Date(request.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric'})}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`${styles.statusTag} ${tagClass}`}>
+                    {tagLabel}
+                  </div>
+                </div>
+
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div className={styles.expandedContent}>
+                    <div className={styles.expandedGrid}>
+                      <div className={styles.contactInfo}>
+                        <h5>Contact Details</h5>
+                        <p><strong>Email:</strong> {request.users.email}</p>
+                        {request.users.phone && <p><strong>Phone:</strong> {request.users.phone}</p>}
+                      </div>
+
+                      {request.users.adoption_profile && Object.keys(request.users.adoption_profile).length > 0 && (
+                        <div className={styles.profileInfo}>
+                          <h5>Adoption Profile</h5>
+                          <div className={styles.profileGrid}>
+                            <p><strong>Housing:</strong> {request.users.adoption_profile.housing_type}</p>
+                            <p><strong>Household:</strong> {request.users.adoption_profile.household_members}</p>
+                            <p><strong>Other Pets:</strong> {request.users.adoption_profile.other_pets}</p>
+                            <p><strong>Activity:</strong> {request.users.adoption_profile.physical_activity}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {request.extra_answers && Object.keys(request.extra_answers).length > 0 && (
+                        <div className={styles.extraAnswers}>
+                          <h5>Shelter Custom Questions</h5>
+                          {Object.entries(request.extra_answers).map(([question, answer]) => (
+                            <div key={question} style={{ marginBottom: '0.5rem' }}>
+                              <strong>Q: {question}</strong>
+                              <p>A: {String(answer)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {request.status === 'pending' && (
+                      <div className={styles.actions}>
+                        <button onClick={(e) => { e.stopPropagation(); handleReject(request.id) }} className={styles.rejectBtn}>
+                          Decline Application
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); openApproveModal(request.id) }} className={styles.approveBtn}>
+                          Approve & Schedule
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {filteredRequests.length > 0 && (
+        <div className={styles.loadMoreContainer}>
+          <button className={styles.loadMoreBtn}>Load More Applications <span>˅</span></button>
         </div>
       )}
 

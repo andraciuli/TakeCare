@@ -1,30 +1,31 @@
 'use client'
-import Link from 'next/link'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/AuthContext'
 import Navbar from '@/components/Navbar'
-import styles from './home.module.css'
 
 export default function HomePage() {
+  const router = useRouter()
+  const { userRole, loading } = useAuth()
+
+  useEffect(() => {
+    if (!loading) {
+      if (userRole === 'shelter_admin') {
+        router.push('/dashboard')
+      } else {
+        router.push('/animals')
+      }
+    }
+  }, [userRole, loading, router])
+
   return (
     <>
       <Navbar />
-      <main className={styles.main}>
-        <div className={styles.content}>
-        <div className={styles.hero}>
-          <h1 className={styles.title}>TakeCare</h1>
-          <p className={styles.subtitle}>
-            Find your perfect companion from shelters in Romania
-          </p>
-          <div className={styles.buttonGroup}>
-            <Link href="/animals" className={styles.primaryButton}>
-              Browse Animals
-            </Link>
-            <Link href="/map" className={styles.secondaryButton}>
-              View Map
-            </Link>
-          </div>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 80px)' }}>
+        <p style={{ color: 'var(--on-surface-variant)', fontSize: '1.2rem', fontFamily: 'var(--font-quicksand)' }}>
+          Se încarcă...
+        </p>
       </div>
-      </main>
     </>
   )
 }

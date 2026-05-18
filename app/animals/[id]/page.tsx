@@ -80,14 +80,19 @@ export default function AnimalDetailsPage() {
 
           const { data: profileData } = await supabase
             .from('users')
-            .select('first_name, last_name, phone')
+            .select('first_name, last_name, phone, adoption_profile')
             .eq('id', user.id)
             .single()
 
           if (profileData) {
             const fullName = [profileData.first_name, profileData.last_name].filter(Boolean).join(' ')
-            if (fullName && profileData.phone) {
+            const hasBasicInfo = !!(fullName && profileData.phone)
+            const hasAdoptionProfile = profileData.adoption_profile && Object.keys(profileData.adoption_profile).length > 0
+            
+            if (hasBasicInfo && hasAdoptionProfile) {
               setIsProfileComplete(true)
+            } else {
+              setIsProfileComplete(false)
             }
             setRequesterName(fullName || user?.user_metadata?.full_name || '')
             setRequesterPhone(profileData.phone || '')
@@ -148,9 +153,10 @@ export default function AnimalDetailsPage() {
     }
 
     if (!isProfileComplete) {
-      setRequesterEmail(user?.email ?? '')
-      if (!requesterName) setRequesterName(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '')
+      setShowAdoptModal(true)
+      return
     }
+
     setExtraAnswers({})
     setShowAdoptModal(true)
   }
@@ -165,21 +171,6 @@ export default function AnimalDetailsPage() {
     setFormError('')
 
     try {
-      if (!isProfileComplete) {
-        // Split name into first and last
-        const nameParts = requesterName.trim().split(' ')
-        const firstName = nameParts[0]
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : ''
-        
-        await supabase
-          .from('users')
-          .update({
-            first_name: firstName,
-            last_name: lastName,
-            phone: requesterPhone
-          })
-          .eq('id', user.id)
-      }
 
       const { error } = await supabase
         .from('adoption_requests')
@@ -325,7 +316,7 @@ export default function AnimalDetailsPage() {
                 {animal.description || "Acest animal nu are încă o descriere detaliată."}
               </p>
 
-              <h2 className={styles.sectionTitle}>Istoric Medical</h2>
+              <h2 className={styles.sectionTitle}>Caracteristici & Istoric Medical</h2>
               <div className={styles.medicalGrid}>
                 <div className={styles.medicalItem}>
                   <span className={characteristics.vaccinated ? styles.iconTrue : styles.iconFalse}>
@@ -345,6 +336,22 @@ export default function AnimalDetailsPage() {
                   </span>
                   <span>Deparazitat</span>
                 </div>
+                {animal.species === 'dog' && (
+                  <div className={styles.medicalItem}>
+                    <span className={characteristics.house_trained ? styles.iconTrue : styles.iconFalse}>
+                      {characteristics.house_trained ? '✓' : '✗'}
+                    </span>
+                    <span>Dresat pentru casă</span>
+                  </div>
+                )}
+                {animal.species === 'cat' && (
+                  <div className={styles.medicalItem}>
+                    <span className={characteristics.litter_trained ? styles.iconTrue : styles.iconFalse}>
+                      {characteristics.litter_trained ? '✓' : '✗'}
+                    </span>
+                    <span>Învățat la litieră</span>
+                  </div>
+                )}
               </div>
 
               {animal.shelters && (
@@ -399,74 +406,56 @@ export default function AnimalDetailsPage() {
             )}
             
             {!isProfileComplete ? (
+              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
+                <h3 style={{ marginBottom: '1rem', color: '#374151' }}>Profil Incomplet</h3>
+                <p style={{ marginBottom: '2rem', color: '#4b5563', lineHeight: '1.5' }}>
+                  Pentru a trimite o cerere de adopție, te rugăm să îți completezi profilul de adoptator. Acesta ajută adăpostul să se asigure că ești perechea potrivită pentru <strong>{animal.name}</strong>.
+                </p>
+                <div className={styles.modalActions} style={{ justifyContent: 'center' }}>
+                  <button className={styles.modalCancel} onClick={() => setShowAdoptModal(false)}>Anulează</button>
+                  <Link href="/profile" className={styles.modalSubmit} style={{ textDecoration: 'none', display: 'inline-block', textAlign: 'center' }}>
+                    Completează Profilul
+                  </Link>
+                </div>
+              </div>
+            ) : (
               <>
-                <p>Te rugăm să îți completezi datele de contact.</p>
-                <div className={styles.formRow}>
-                  <label className={styles.formLabel}>Numele tău</label>
-                  <input
-                    className={styles.formInput}
-                    type="text"
-                    value={requesterName}
-                    onChange={(e) => setRequesterName(e.target.value)}
-                    placeholder="Numele complet"
-                  />
-                </div>
-                <div className={styles.formRow}>
-                  <label className={styles.formLabel}>Emailul tău</label>
-                  <input
-                    className={styles.formInput}
-                    type="email"
-                    value={requesterEmail}
-                    onChange={(e) => setRequesterEmail(e.target.value)}
-                    placeholder="you@example.com"
-                  />
-                </div>
-                <div className={styles.formRow}>
-                  <label className={styles.formLabel}>Telefonul tău</label>
-                  <input
-                    className={styles.formInput}
-                    type="tel"
-                    value={requesterPhone}
-                    onChange={(e) => setRequesterPhone(e.target.value)}
-                    placeholder="+40 7xx xxx xxx"
-                  />
+                <p style={{ color: '#4b5563', marginBottom: '1rem' }}>Informațiile tale de contact și profilul de adopție vor fi trimise automat către adăpost.</p>
+            
+                {animal?.extra_questions && animal.extra_questions.length > 0 && (
+                  <div style={{ marginTop: '1rem', marginBottom: '1rem' }}>
+                    <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem', color: '#374151' }}>Întrebări suplimentare de la adăpost:</h3>
+                    {animal.extra_questions.map((q: string, i: number) => (
+                      <div key={i} className={styles.formRow}>
+                        <label className={styles.formLabel}>{q}</label>
+                        <input
+                          className={styles.formInput}
+                          type="text"
+                          value={extraAnswers[q] || ''}
+                          onChange={(e) => setExtraAnswers(prev => ({ ...prev, [q]: e.target.value }))}
+                          placeholder="Răspunsul tău..."
+                          required
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <p style={{ marginTop: '1rem' }}>Dorești să incluzi un mesaj pentru adăpost?</p>
+                <textarea
+                  className={styles.messageInput}
+                  placeholder="Spune-ne de ce îți dorești acest animal... (opțional)"
+                  maxLength={200}
+                  value={adoptionMessage}
+                  onChange={(e) => setAdoptionMessage(e.target.value)}
+                />
+                <div className={styles.modalActions}>
+                  <button className={styles.modalCancel} onClick={() => setShowAdoptModal(false)}>Anulează</button>
+                  <button className={styles.modalSubmit} onClick={handleSubmitAdoption}>Trimite Cererea</button>
                 </div>
               </>
-            ) : (
-              <p>Informațiile de contact vor fi preluate automat din profilul tău.</p>
             )}
-            
-            {animal?.extra_questions && animal.extra_questions.length > 0 && (
-              <div style={{ marginTop: '1rem', marginBottom: '1rem' }}>
-                <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem', color: '#374151' }}>Întrebări suplimentare de la adăpost:</h3>
-                {animal.extra_questions.map((q: string, i: number) => (
-                  <div key={i} className={styles.formRow}>
-                    <label className={styles.formLabel}>{q}</label>
-                    <input
-                      className={styles.formInput}
-                      type="text"
-                      value={extraAnswers[q] || ''}
-                      onChange={(e) => setExtraAnswers(prev => ({ ...prev, [q]: e.target.value }))}
-                      placeholder="Răspunsul tău..."
-                      required
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            <p>Dorești să incluzi un mesaj pentru adăpost?</p>
-            <textarea
-              className={styles.messageInput}
-              placeholder="Spune-ne de ce îți dorești acest animal... (opțional)"
-              maxLength={200}
-              value={adoptionMessage}
-              onChange={(e) => setAdoptionMessage(e.target.value)}
-            />
-            <div className={styles.modalActions}>
-              <button className={styles.modalCancel} onClick={() => setShowAdoptModal(false)}>Anulează</button>
-              <button className={styles.modalSubmit} onClick={handleSubmitAdoption}>Trimite Cererea</button>
-            </div>
           </div>
         </div>
       )}

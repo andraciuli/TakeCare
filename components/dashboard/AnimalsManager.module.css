@@ -1,8 +1,8 @@
 .container {
-  background: white;
-  border-radius: 8px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
   padding: 2rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 100, 116, 0.05);
 }
 
 .header {
@@ -19,15 +19,16 @@
 
 .addButton {
   padding: 0.75rem 1.5rem;
-  background: #0070f3;
-  color: white;
+  background: var(--primary);
+  color: var(--on-primary);
   text-decoration: none;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   font-weight: 500;
 }
 
 .addButton:hover {
-  background: #0051cc;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
 }
 
 .list {
@@ -37,8 +38,8 @@
 }
 
 .card {
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
 }
 
@@ -57,24 +58,24 @@
 
 .badge {
   padding: 0.25rem 0.75rem;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   font-size: 0.875rem;
   font-weight: 500;
 }
 
 .badgeAvailable {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--tertiary-fixed);
+  color: var(--on-tertiary-fixed);
 }
 
 .badgePending {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--secondary-fixed);
+  color: var(--on-secondary-fixed);
 }
 
 .badgeAdopted {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: var(--surface-variant);
+  color: var(--on-surface-variant);
 }
 
 .info {
@@ -83,7 +84,7 @@
 
 .info p {
   margin: 0.5rem 0;
-  color: #666;
+  color: var(--on-surface-variant);
 }
 
 .actions {
@@ -97,49 +98,51 @@
 .cancelButton,
 .saveButton {
   padding: 0.5rem 1rem;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   font-weight: 500;
   cursor: pointer;
 }
 
 .editButton {
-  background: white;
-  border: 2px solid #0070f3;
-  color: #0070f3;
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  color: var(--primary);
 }
 
 .editButton:hover {
-  background: #eff6ff;
+  background: var(--surface-container-low);
 }
 
 .deleteButton {
-  background: white;
-  border: 2px solid #dc2626;
-  color: #dc2626;
+  background: var(--surface);
+  border: 2px solid var(--error);
+  color: var(--error);
 }
 
 .deleteButton:hover {
-  background: #fee2e2;
+  background: var(--error-container);
+  color: var(--on-error-container);
 }
 
 .cancelButton {
-  background: white;
-  border: 2px solid #ddd;
-  color: #333;
+  background: var(--surface);
+  border: 2px solid var(--outline-variant);
+  color: var(--on-surface);
 }
 
 .cancelButton:hover {
-  background: #f5f5f5;
+  background: var(--surface-variant);
 }
 
 .saveButton {
-  background: #0070f3;
+  background: var(--primary);
   border: none;
-  color: white;
+  color: var(--on-primary);
 }
 
 .saveButton:hover {
-  background: #0051cc;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
 }
 
 .editForm {
@@ -168,9 +171,11 @@
 .input,
 .textarea {
   padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-md);
   font-family: inherit;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
 }
 
 .textarea {

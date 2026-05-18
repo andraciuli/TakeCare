@@ -1,0 +1,369 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-family: var(--font-quicksand);
+  color: var(--primary);
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  color: var(--on-surface-variant);
+  font-size: 1rem;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.primaryBtn, .secondaryBtn {
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-family: var(--font-inter);
+  cursor: pointer;
+  border: none;
+}
+
+.primaryBtn {
+  background: var(--primary);
+  color: white;
+}
+
+.secondaryBtn {
+  background: var(--surface-variant);
+  color: var(--on-surface);
+}
+
+/* Stats Grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.statCard {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+}
+
+.iconWrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+.blue { background: #e0f2fe; color: #0284c7; }
+.red { background: #fee2e2; color: #dc2626; }
+.green { background: #dcfce7; color: #16a34a; }
+
+.statLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+  margin-bottom: 0.25rem;
+}
+
+.statValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--on-surface);
+}
+
+.trendUp {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  color: #16a34a;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.trendLabel {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  color: var(--on-surface-variant);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Middle Section */
+.middleSection {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+}
+
+.chartCard {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.chartHeader h3 {
+  font-family: var(--font-quicksand);
+  font-size: 1.25rem;
+}
+
+.selectBox {
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--outline-variant);
+  background: var(--surface);
+  color: var(--on-surface);
+}
+
+.mockChart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 200px;
+  gap: 1rem;
+  padding-bottom: 2rem;
+}
+
+.bar {
+  flex: 1;
+  background: #94a3b8;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+}
+
+.barActive {
+  background: var(--primary);
+}
+
+.bar span {
+  position: absolute;
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  color: var(--on-surface-variant);
+}
+
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.capacityCard {
+  background: var(--primary);
+  color: white;
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.capacityCard h3 {
+  font-family: var(--font-quicksand);
+  margin-bottom: 0.25rem;
+}
+
+.capacityCard p {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.capacityIcon {
+  font-size: 2.5rem;
+  opacity: 0.5;
+}
+
+.prioritiesCard {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+  flex: 1;
+}
+
+.prioritiesTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--on-surface-variant);
+  letter-spacing: 0.05em;
+  margin-bottom: 1.5rem;
+}
+
+.priorityItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+}
+
+.priorityIconRed { color: #dc2626; font-size: 1.25rem; }
+.priorityIconBlue { color: #0284c7; font-size: 1.25rem; }
+
+.priorityText {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.tagUrgent {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 0.25rem 0.75rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.tagNew {
+  background: #dcfce7;
+  color: #16a34a;
+  padding: 0.25rem 0.75rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Gallery */
+.recentlyAdded {
+  margin-top: 1rem;
+}
+
+.recentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.recentHeader h3 {
+  font-family: var(--font-quicksand);
+  font-size: 1.25rem;
+}
+
+.viewAll {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.galleryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.animalCard {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+  border: 1px solid var(--outline-variant);
+}
+
+.imageContainer {
+  height: 200px;
+  position: relative;
+  background: var(--surface-variant);
+}
+
+.animalImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.placeholderImage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-surface-variant);
+}
+
+.statusTag {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(120, 50, 50, 0.9);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.cardContent {
+  padding: 1.5rem;
+}
+
+.cardContent h4 {
+  font-family: var(--font-quicksand);
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.tags {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.pill {
+  background: var(--surface-variant);
+  color: var(--on-surface-variant);
+  padding: 0.25rem 0.75rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.editBtn {
+  width: 100%;
+  padding: 0.75rem;
+  background: transparent;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.editBtn:hover {
+  background: var(--primary);
+  color: white;
+}

@@ -1,0 +1,277 @@
+.page {
+  min-height: 100vh;
+  background-color: var(--background);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 5rem;
+  color: var(--on-surface-variant);
+  font-family: var(--font-quicksand);
+  font-size: 1.25rem;
+}
+
+.error {
+  text-align: center;
+  padding: 5rem;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+/* Preview Card Style (matches Live Preview) */
+.previewCard {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  margin-bottom: 4rem;
+}
+
+.previewImage {
+  position: relative;
+  height: 350px;
+}
+
+.previewImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.previewOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(transparent, rgba(0,0,0,0.9));
+  padding: 3rem 2rem 1.5rem;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.title {
+  font-family: var(--font-quicksand);
+  font-size: 2.5rem;
+  margin: 0;
+}
+
+.address {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.socialLink {
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-block;
+  margin-top: 0.5rem;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+}
+
+.socialLink:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.previewContent {
+  padding: 2.5rem;
+  display: flex;
+  gap: 4rem;
+}
+
+.previewMission {
+  flex: 2;
+}
+
+.previewMission h5 {
+  color: var(--primary);
+  margin-bottom: 1rem;
+  font-weight: 700;
+  font-family: var(--font-quicksand);
+  font-size: 1.25rem;
+}
+
+.previewMission p {
+  color: var(--on-surface-variant);
+  font-size: 1.1rem;
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.infoGrid {
+  margin-top: 2rem;
+}
+
+.infoGrid h6 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--on-surface);
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.infoGrid p {
+  font-size: 0.95rem;
+  color: var(--on-surface-variant);
+  font-style: normal;
+}
+
+.previewActions {
+  flex: 1;
+  background: var(--surface-variant);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.previewActionItem {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--on-surface);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s;
+}
+
+.previewActionItem:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+.previewButton {
+  background: var(--primary);
+  color: white;
+  text-decoration: none;
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  text-align: center;
+  margin-top: 1rem;
+  transition: filter 0.2s;
+}
+
+.previewButton:hover {
+  filter: brightness(1.1);
+}
+
+/* Animals Grid */
+.sectionTitle {
+  font-family: var(--font-quicksand);
+  font-size: 2rem;
+  color: var(--on-surface);
+  margin-bottom: 2rem;
+}
+
+.emptyText {
+  color: var(--on-surface-variant);
+  font-size: 1.1rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.animalCard {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--outline-variant);
+  display: block;
+}
+
+.animalCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+
+.animalImageWrapper {
+  position: relative;
+  height: 220px;
+}
+
+.animalImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.noImage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-variant);
+  color: var(--on-surface-variant);
+}
+
+.statusBadge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.4rem 1rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.statusAvailable {
+  background: var(--primary);
+  color: white;
+}
+
+.statusAdopted {
+  background: var(--outline-variant);
+  color: var(--on-surface);
+}
+
+.animalInfo {
+  padding: 1.5rem;
+}
+
+.animalName {
+  font-family: var(--font-quicksand);
+  font-size: 1.5rem;
+  margin: 0 0 0.25rem 0;
+  color: var(--on-surface);
+}
+
+.animalDetails {
+  font-size: 0.9rem;
+  color: var(--on-surface-variant);
+  margin: 0;
+  text-transform: capitalize;
+}
+
+@media (max-width: 768px) {
+  .previewContent {
+    flex-direction: column;
+    gap: 2rem;
+  }
+}

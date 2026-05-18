@@ -6,9 +6,17 @@ import styles from './ShelterEditor.module.css'
 export default function ShelterEditor({ shelterId }: { shelterId: string }) {
   const [shelter, setShelter] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState(false)
-  const [formData, setFormData] = useState<any>({})
+  const [formData, setFormData] = useState<any>({
+    name: '',
+    address: '',
+    description: '',
+    phone: '',
+    email: '',
+    schedule: '',
+    instagram: '',
+  })
   const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     fetchShelter()
@@ -25,14 +33,13 @@ export default function ShelterEditor({ shelterId }: { shelterId: string }) {
       if (error) throw error
       setShelter(data)
       setFormData({
-        name: data.name,
-        address: data.address,
+        name: data.name || '',
+        address: data.address || '',
+        description: data.description || '',
         phone: data.phone || '',
         email: data.email || '',
-        latitude: data.latitude.toString(),
-        longitude: data.longitude.toString(),
-        description: data.description || '',
         schedule: data.schedule || '',
+        instagram: data.instagram || '',
       })
     } catch (error: any) {
       setError(error.message)
@@ -47,204 +54,162 @@ export default function ShelterEditor({ shelterId }: { shelterId: string }) {
 
   async function handleSave() {
     setError(null)
+    setSaving(true)
 
     try {
-      const lat = parseFloat(formData.latitude)
-      const lng = parseFloat(formData.longitude)
-
-      if (isNaN(lat) || isNaN(lng)) {
-        throw new Error('Invalid coordinates')
-      }
-
       const { error } = await supabase
         .from('shelters')
         .update({
           name: formData.name,
           address: formData.address,
+          description: formData.description || null,
           phone: formData.phone || null,
           email: formData.email || null,
-          latitude: lat,
-          longitude: lng,
-          description: formData.description || null,
           schedule: formData.schedule || null,
+          instagram: formData.instagram || null,
         })
         .eq('id', shelterId)
 
       if (error) throw error
-
       await fetchShelter()
-      setEditing(false)
     } catch (err: any) {
       setError(err.message)
+    } finally {
+      setSaving(false)
     }
   }
 
   if (loading) {
-    return <div className={styles.loading}>Loading shelter details...</div>
-  }
-
-  if (!shelter) {
-    return <div className={styles.error}>Shelter not found</div>
+    return <div className={styles.loading}>Loading profile editor...</div>
   }
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>Shelter Details</h2>
-        {!editing && (
-          <button onClick={() => setEditing(true)} className={styles.editButton}>
-            Edit
+      <div className={styles.headerRow}>
+        <div>
+          <h2 className={styles.title}>Shelter Profile Editor</h2>
+          <p className={styles.subtitle}>Update your shelter's public identity and contact details.</p>
+        </div>
+        <div className={styles.headerActions}>
+          <button onClick={handleSave} className={styles.saveButton} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Changes'}
           </button>
-        )}
+        </div>
       </div>
 
-      {editing ? (
-        <div className={styles.form}>
-          <div className={styles.formGroup}>
-            <label>Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className={styles.input}
-            />
+      {error && <div className={styles.errorBanner}>{error}</div>}
+
+      <div className={styles.formSection}>
+        <h3 className={styles.sectionTitle}>
+          <span className={styles.icon}>ℹ️</span> General Information
+        </h3>
+        <div className={styles.inputGrid}>
+          <div className={styles.inputGroup}>
+            <label>Shelter Name</label>
+            <input type="text" name="name" value={formData.name} onChange={handleChange} />
           </div>
-
-          <div className={styles.formGroup}>
-            <label>Address</label>
-            <input
-              type="text"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              className={styles.input}
-            />
-          </div>
-
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label>Phone</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className={styles.input}
-              />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className={styles.input}
-              />
-            </div>
-          </div>
-
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label>Latitude</label>
-              <input
-                type="text"
-                name="latitude"
-                value={formData.latitude}
-                onChange={handleChange}
-                className={styles.input}
-              />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>Longitude</label>
-              <input
-                type="text"
-                name="longitude"
-                value={formData.longitude}
-                onChange={handleChange}
-                className={styles.input}
-              />
-            </div>
-          </div>
-
-          <div className={styles.formGroup}>
-            <label>Schedule</label>
-            <input
-              type="text"
-              name="schedule"
-              value={formData.schedule}
-              onChange={handleChange}
-              className={styles.input}
-            />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label>Description</label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              className={styles.textarea}
-              rows={4}
-            />
-          </div>
-
-          {error && (
-            <div className={styles.errorMessage}>{error}</div>
-          )}
-
-          <div className={styles.actions}>
-            <button onClick={() => setEditing(false)} className={styles.cancelButton}>
-              Cancel
-            </button>
-            <button onClick={handleSave} className={styles.saveButton}>
-              Save Changes
-            </button>
+          <div className={styles.inputGroup}>
+            <label>Location / Address</label>
+            <input type="text" name="address" value={formData.address} onChange={handleChange} />
           </div>
         </div>
-      ) : (
-        <div className={styles.details}>
-          <div className={styles.detailRow}>
-            <span className={styles.label}>Name:</span>
-            <span>{shelter.name}</span>
-          </div>
-          <div className={styles.detailRow}>
-            <span className={styles.label}>Address:</span>
-            <span>{shelter.address}</span>
-          </div>
-          {shelter.phone && (
-            <div className={styles.detailRow}>
-              <span className={styles.label}>Phone:</span>
-              <span>{shelter.phone}</span>
-            </div>
-          )}
-          {shelter.email && (
-            <div className={styles.detailRow}>
-              <span className={styles.label}>Email:</span>
-              <span>{shelter.email}</span>
-            </div>
-          )}
-          <div className={styles.detailRow}>
-            <span className={styles.label}>Location:</span>
-            <span>{shelter.latitude}, {shelter.longitude}</span>
-          </div>
-          {shelter.schedule && (
-            <div className={styles.detailRow}>
-              <span className={styles.label}>Schedule:</span>
-              <span>{shelter.schedule}</span>
-            </div>
-          )}
-          {shelter.description && (
-            <div className={styles.detailRow}>
-              <span className={styles.label}>Description:</span>
-              <span>{shelter.description}</span>
-            </div>
-          )}
+        <div className={styles.inputGroup}>
+          <label>Mission Statement</label>
+          <textarea 
+            name="description" 
+            value={formData.description} 
+            onChange={handleChange} 
+            rows={4}
+            placeholder="Tell your story..."
+          />
         </div>
-      )}
+      </div>
+
+      <div className={styles.middleRow}>
+        <div className={styles.formSection} style={{ flex: 1 }}>
+          <h3 className={styles.sectionTitle}>
+            <span className={styles.icon}>📸</span> Gallery Photos
+          </h3>
+          <div className={styles.galleryGrid}>
+            <div className={styles.photoSlot}>
+              <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=200&h=200&fit=crop" alt="Gallery 1" />
+            </div>
+            <div className={styles.photoSlot}>
+              <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=200&h=200&fit=crop" alt="Gallery 2" />
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.formSection} style={{ flex: 1 }}>
+          <h3 className={styles.sectionTitle}>
+            <span className={styles.icon}>🕒</span> Operating Hours
+          </h3>
+          <div className={styles.hoursGrid}>
+            <label>Mon-Fri</label>
+            <input type="text" name="schedule" value={formData.schedule} onChange={handleChange} placeholder="e.g. 9:00 AM - 6:00 PM" />
+            <label>Saturday</label>
+            <input type="text" placeholder="10:00 AM - 4:00 PM" />
+            <label>Sunday</label>
+            <input type="text" placeholder="Closed" />
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.formSection}>
+        <h3 className={styles.sectionTitle}>
+          <span className={styles.icon}>📞</span> Contact & Social Links
+        </h3>
+        <div className={styles.contactGrid}>
+          <div className={styles.inputGroup}>
+            <label>Public Email</label>
+            <div className={styles.inputWithIcon}>
+              <span>✉️</span>
+              <input type="email" name="email" value={formData.email} onChange={handleChange} />
+            </div>
+          </div>
+          <div className={styles.inputGroup}>
+            <label>Phone Number</label>
+            <div className={styles.inputWithIcon}>
+              <span>📞</span>
+              <input type="tel" name="phone" value={formData.phone} onChange={handleChange} />
+            </div>
+          </div>
+          <div className={styles.inputGroup}>
+            <label>Instagram Handle</label>
+            <div className={styles.inputWithIcon}>
+              <span>📸</span>
+              <input type="text" name="instagram" value={formData.instagram} onChange={handleChange} placeholder="@handle" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.previewSection}>
+        <div className={styles.previewHeader}>
+          <h3><span className={styles.icon}>👁️</span> Live Preview</h3>
+          <span className={styles.previewBadge}>HOW IT LOOKS TO VISITORS</span>
+        </div>
+        <div className={styles.previewCard}>
+          <div className={styles.previewImage}>
+            <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=300&fit=crop" alt="Cover" />
+            <div className={styles.previewOverlay}>
+              <h4>{formData.name || 'Shelter Name'}</h4>
+              <p>📍 {formData.address || 'Location'}</p>
+            </div>
+          </div>
+          <div className={styles.previewContent}>
+            <div className={styles.previewMission}>
+              <h5>Our Mission</h5>
+              <p>"{formData.description || 'Our mission is to bridge the gap between abandoned souls and loving families through education, patience, and warmth.'}"</p>
+            </div>
+            <div className={styles.previewActions}>
+              <div className={styles.previewActionItem}>✉️ Email Us</div>
+              <div className={styles.previewActionItem}>📞 Call Now</div>
+              <button className={styles.previewButton}>View Animals</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
