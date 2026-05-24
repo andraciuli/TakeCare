@@ -368,16 +368,13 @@ export default function AnimalDetailsPage() {
 
               <div className={styles.actions}>
                 <button 
-                  className={`${styles.favoriteButton} ${isFavorite ? styles.favoriteButtonActive : ''}`}
-                  onClick={handleToggleFavorite}
-                >
-                  {isFavorite ? '♥ Favorit' : '♡ Salvează'}
-                </button>
-                <button 
                   className={styles.adoptButton}
                   onClick={handleRequestAdoption}
                   disabled={requestStatus === 'pending' || animal.status === 'adopted'}
-                  style={animal.status === 'adopted' ? { background: '#9ca3af', cursor: 'not-allowed' } : {}}
+                  style={Object.assign(
+                    { width: '100%' },
+                    animal.status === 'adopted' ? { background: '#9ca3af', cursor: 'not-allowed' } : {}
+                  )}
                 >
                   {animal.status === 'adopted'
                     ? 'Deja Adoptat'

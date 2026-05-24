@@ -8,24 +8,70 @@ import { supabase } from '@/lib/supabase'
 
 export default function Navbar() {
   const { user, userRole, signOut, loading } = useAuth()
-  const [hasScheduledVisit, setHasScheduledVisit] = useState(false)
+  const [hasUpdate, setHasUpdate] = useState(false)
 
   useEffect(() => {
     if (user && userRole !== 'shelter_admin') {
-      const checkVisits = async () => {
+      const checkUpdates = async () => {
         const { data } = await supabase
           .from('adoption_requests')
-          .select('id')
+          .select('updated_at, status, visit_date')
           .eq('user_id', user.id)
-          .eq('status', 'approved')
-          .not('visit_date', 'is', null)
-          .limit(1)
-          
-        if (data && data.length > 0) {
-          setHasScheduledVisit(true)
+
+        if (data) {
+          const lastViewed = localStorage.getItem('profile_last_viewed')
+          if (!lastViewed) {
+            localStorage.setItem('profile_last_viewed', new Date().toISOString())
+            return
+          }
+
+          const hasUnseenUpdate = data.some(req => {
+            const isUpdated = req.status !== 'pending' || req.visit_date !== null
+            if (!isUpdated) return false
+            
+            const updatedAtTime = new Date(req.updated_at).getTime()
+            const lastViewedTime = new Date(lastViewed).getTime()
+            return updatedAtTime > lastViewedTime
+          })
+
+          setHasUpdate(hasUnseenUpdate)
         }
       }
-      checkVisits()
+      
+      checkUpdates()
+
+      const channel = supabase
+        .channel('adoption_requests_updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'adoption_requests',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            const req = payload.new as any
+            const isUpdated = req.status !== 'pending' || req.visit_date !== null
+            if (isUpdated) {
+              const lastViewed = localStorage.getItem('profile_last_viewed')
+              if (lastViewed) {
+                const updatedAtTime = new Date(req.updated_at).getTime()
+                const lastViewedTime = new Date(lastViewed).getTime()
+                if (updatedAtTime > lastViewedTime) {
+                  setHasUpdate(true)
+                }
+              } else {
+                setHasUpdate(true)
+              }
+            }
+          }
+        )
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(channel)
+      }
     }
   }, [user, userRole])
 
@@ -47,30 +93,11 @@ export default function Navbar() {
           </Link>
         )}
         <Link href="/education" className={styles.navLink}>
-          Educație
+          Education
         </Link>
         <Link href="/map" className={styles.navLink}>
           Map
         </Link>
-        {userRole !== 'shelter_admin' && (
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <Link href="/profile" className={styles.navLink}>
-              Cererile mele
-            </Link>
-            {hasScheduledVisit && (
-              <span style={{ 
-                position: 'absolute', 
-                top: '0px', 
-                right: '-8px', 
-                width: '10px', 
-                height: '10px', 
-                backgroundColor: '#3b82f6', 
-                borderRadius: '50%',
-                border: '2px solid white'
-              }}></span>
-            )}
-          </div>
-        )}
         {userRole === 'shelter_admin' && (
           <Link href="/dashboard" className={styles.navLink}>
             Dashboard
@@ -80,12 +107,17 @@ export default function Navbar() {
 
       <div className={styles.navRight}>
         {loading ? (
-          <span className={styles.userEmail}>Loading...</span>
+          <span className={styles.navLink}>Loading...</span>
         ) : user ? (
           <>
-            <Link href="/profile" className={styles.userEmail} style={{ textDecoration: 'none', cursor: 'pointer' }}>
-              Profile
-            </Link>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <Link href="/profile" className={styles.navLink}>
+                Profile
+              </Link>
+              {hasUpdate && (
+                <span className={styles.notificationDot}></span>
+              )}
+            </div>
             <button onClick={() => signOut()} className={styles.logoutButton}>
               Logout
             </button>

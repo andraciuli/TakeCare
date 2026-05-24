@@ -42,6 +42,15 @@ export default function AnimalsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState<string>('')
   const [sortBy, setSortBy] = useState<string>('newest')
 
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const itemsPerPage = 9
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filterSpecies, filterAge, sortBy, debouncedSearch])
+
   // Debounce search
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -217,6 +226,9 @@ export default function AnimalsPage() {
 
   if (loading) return <div className={styles.page}><Navbar/><div style={{padding: '5rem', textAlign: 'center'}}>Loading animals...</div></div>
 
+  const totalPages = Math.ceil(animals.length / itemsPerPage)
+  const displayedAnimals = animals.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
   return (
     <div className={styles.page}>
       <Navbar />
@@ -266,14 +278,6 @@ export default function AnimalsPage() {
                   <label className={styles.checkboxLabel}>
                     <input type="checkbox" className={styles.checkboxInput} checked={filterSpecies.includes('cat')} onChange={() => toggleSpecies('cat')} />
                     Cats
-                  </label>
-                  <label className={styles.checkboxLabel}>
-                    <input type="checkbox" className={styles.checkboxInput} checked={filterSpecies.includes('rabbit')} onChange={() => toggleSpecies('rabbit')} />
-                    Rabbits
-                  </label>
-                  <label className={styles.checkboxLabel}>
-                    <input type="checkbox" className={styles.checkboxInput} checked={filterSpecies.includes('bird')} onChange={() => toggleSpecies('bird')} />
-                    Birds
                   </label>
                 </div>
               </div>
@@ -344,17 +348,9 @@ export default function AnimalsPage() {
               <p>No animals match your filters.</p>
             ) : (
               <div className={styles.grid}>
-                {animals.map(animal => (
+                {displayedAnimals.map(animal => (
                   <Link href={`/animals/${animal.id}`} key={animal.id} style={{textDecoration: 'none'}}>
                     <div className={styles.card}>
-                      <button 
-                        className={`${styles.favoriteBtn} ${favorites.has(animal.id) ? styles.active : ''}`}
-                        onClick={(e) => handleToggleFavorite(animal.id, e)}
-                        title={favorites.has(animal.id) ? "Remove from favorites" : "Add to favorites"}
-                      >
-                        {favorites.has(animal.id) ? '♥' : '♡'}
-                      </button>
-
                       <div className={styles.cardImageContainer}>
                         {/* Mock tags randomly for visual parity with mockup */}
                         {Math.random() > 0.7 && <span className={`${styles.cardTag} ${styles.tagNew}`}>New Arrival</span>}
@@ -386,16 +382,43 @@ export default function AnimalsPage() {
               </div>
             )}
 
-            {/* Mock Pagination */}
-            {animals.length > 0 && (
+            {/* Real Pagination */}
+            {totalPages > 1 && (
               <div className={styles.pagination}>
-                <button className={styles.pageBtn}>‹</button>
-                <button className={`${styles.pageBtn} ${styles.active}`}>1</button>
-                <button className={styles.pageBtn}>2</button>
-                <button className={styles.pageBtn}>3</button>
-                <span style={{alignSelf: 'flex-end', padding: '0 0.5rem', color: 'var(--on-surface-variant)'}}>...</span>
-                <button className={styles.pageBtn}>12</button>
-                <button className={styles.pageBtn}>›</button>
+                <button 
+                  className={styles.pageBtn} 
+                  onClick={() => {
+                    setCurrentPage(p => Math.max(p - 1, 1))
+                    window.scrollTo({ top: 600, behavior: 'smooth' })
+                  }}
+                  disabled={currentPage === 1}
+                  style={{ opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                >
+                  ‹
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button 
+                    key={page} 
+                    className={`${styles.pageBtn} ${currentPage === page ? styles.active : ''}`}
+                    onClick={() => {
+                      setCurrentPage(page)
+                      window.scrollTo({ top: 600, behavior: 'smooth' })
+                    }}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button 
+                  className={styles.pageBtn} 
+                  onClick={() => {
+                    setCurrentPage(p => Math.min(p + 1, totalPages))
+                    window.scrollTo({ top: 600, behavior: 'smooth' })
+                  }}
+                  disabled={currentPage === totalPages}
+                  style={{ opacity: currentPage === totalPages ? 0.5 : 1, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+                >
+                  ›
+                </button>
               </div>
             )}
           </main>

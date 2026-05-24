@@ -275,7 +275,10 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
                     )}
                     {request.status === 'pending' && request.visit_date && (
                       <div className={styles.actions}>
-                        <button onClick={(e) => { e.stopPropagation(); handleFinalApprove(request.id, request.animal_id) }} className={styles.approveBtn} style={{ width: '100%' }}>
+                        <button onClick={(e) => { e.stopPropagation(); handleReject(request.id) }} className={styles.rejectBtn}>
+                          Decline Application
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); handleFinalApprove(request.id, request.animal_id) }} className={styles.approveBtn}>
                           Finalize Adoption (Approved)
                         </button>
                       </div>

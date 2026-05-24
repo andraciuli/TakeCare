@@ -52,6 +52,8 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
       if (!user) return
       
+      localStorage.setItem('profile_last_viewed', new Date().toISOString())
+      
       const { data, error } = await supabase
         .from('users')
         .select('first_name, last_name, phone, adoption_profile')
@@ -113,9 +115,12 @@ export default function ProfilePage() {
         
       if (error) throw error
       
-      setMessage({ type: 'success', text: 'Profil actualizat cu succes!' })
+      setMessage({ 
+        type: 'success', 
+        text: 'Profil actualizat cu succes! Atenție: completarea acestui profil nu garantează adopția. Adăpostul va decide dacă sunteți potrivit(ă) pentru adopția acelui animal.' 
+      })
       window.scrollTo(0, 0)
-      setTimeout(() => setMessage({ type: '', text: '' }), 4000)
+      setTimeout(() => setMessage({ type: '', text: '' }), 8000)
     } catch (error: any) {
       setMessage({ type: 'error', text: 'Eroare la salvare: ' + error.message })
       window.scrollTo(0, 0)
@@ -313,15 +318,18 @@ export default function ProfilePage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.label}>Plan de Hrană</label>
-                <input 
-                  type="text" 
+                <label className={styles.label}>Situație financiară</label>
+                <select 
                   name="food_plan" 
                   value={adoptionProfile.food_plan} 
                   onChange={handleProfileChange} 
-                  placeholder="Ex: Hrană super-premium recomandată de veterinar"
-                  className={styles.input} 
-                />
+                  className={styles.input}
+                >
+                  <option value="">Alege o opțiune</option>
+                  <option value="Angajat">Angajat</option>
+                  <option value="Student">Student</option>
+                  <option value="Altele">Altele</option>
+                </select>
               </div>
             </div>
 
@@ -340,12 +348,12 @@ export default function ProfilePage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.label}>Cum veți reacționa dacă animalul roade mobila sau are accidente fiziologice?</label>
+                <label className={styles.label}>Sunteți dispus(ă) să dresați animalul sau să îl duceți la dresaj dacă este necesar?</label>
                 <textarea 
                   name="behavior_reaction" 
                   value={adoptionProfile.behavior_reaction} 
                   onChange={handleProfileChange} 
-                  placeholder="Ex: Voi avea răbdare, folosesc întărire pozitivă și voi apela la dresor dacă e cazul."
+                  placeholder="Ex: Da, sunt dispus(ă) să aloc timp pentru dresaj cu recompense sau să îl duc la un dresor profesionist."
                   className={styles.textarea} 
                 />
               </div>
@@ -378,8 +386,8 @@ export default function ProfilePage() {
                 <label className={styles.label}>Destinația animalului</label>
                 <select name="adoption_destination" value={adoptionProfile.adoption_destination} onChange={handleProfileChange} className={styles.input}>
                   <option value="">Alege o opțiune</option>
-                  <option value="Pentru mine/familia mea">Pentru mine / familia mea</option>
-                  <option value="Cadou pentru altcineva">Cadou pentru o altă persoană</option>
+                  <option value="Pentru mine">Pentru mine</option>
+                  <option value="Membru al familiei">Membru al familiei</option>
                 </select>
               </div>
 
@@ -392,6 +400,12 @@ export default function ProfilePage() {
                   <option value="În garaj/anexă">În garaj / anexă</option>
                   <option value="În lanț">În lanț / țarc izolat</option>
                 </select>
+              </div>
+
+              <div className={styles.disclaimerBox}>
+                <p className={styles.disclaimerText}>
+                  ⚠️ <strong>Notă importantă:</strong> Completarea acestui profil NU garantează adopția. Fiecare adăpost va decide dacă sunteți persoana potrivită pentru adopția acelui animal specific, în vederea asigurării binelui acestuia.
+                </p>
               </div>
 
               <div className={styles.buttonGroup}>
@@ -423,12 +437,12 @@ export default function ProfilePage() {
                         background: req.status === 'approved' ? '#dcfce7' : req.status === 'rejected' ? '#fee2e2' : '#fef3c7',
                         color: req.status === 'approved' ? '#166534' : req.status === 'rejected' ? '#dc2626' : '#92400e'
                       }}>
-                        {req.status.toUpperCase()}
+                        {req.status === 'approved' ? 'APROBATĂ' : req.status === 'rejected' ? 'RESPINSĂ' : 'ÎN AȘTEPTARE'}
                       </span>
                     </div>
                     <p style={{ margin: '0.25rem 0', color: '#4b5563', fontSize: '0.9rem' }}>Adăpost: {req.animals?.shelters?.name}</p>
                     
-                    {req.status === 'approved' && req.visit_date && (
+                    {req.status === 'pending' && req.visit_date && (
                       <div style={{ marginTop: '1rem', background: '#ecfdf5', padding: '1rem', borderRadius: '6px', border: '1px solid #10b981' }}>
                         <p style={{ margin: '0', color: '#047857', fontWeight: 'bold' }}>🗓️ Vizită Programată: {new Date(req.visit_date).toLocaleString()}</p>
                         {req.visit_message && (
@@ -437,6 +451,28 @@ export default function ProfilePage() {
                         <p style={{ margin: '0.5rem 0 0 0', color: '#065f46', fontSize: '0.9rem' }}>Adresă: {req.animals?.shelters?.address} | Tel: {req.animals?.shelters?.phone}</p>
                         <p style={{ margin: '0.5rem 0 0 0', color: '#047857', fontSize: '0.9rem', fontWeight: '500' }}>
                           * Pentru a reprograma vizita, vă rugăm să sunați la adăpost.
+                        </p>
+                      </div>
+                    )}
+
+                    {req.status === 'approved' && (
+                      <div style={{ marginTop: '1rem', background: '#ecfdf5', padding: '1.25rem', borderRadius: '8px', border: '1px solid #6ee7b7' }}>
+                        <p style={{ margin: '0', color: '#065f46', fontWeight: 'bold', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          🎉 Adopție Finalizată cu Succes!
+                        </p>
+                        <p style={{ margin: '0.75rem 0 0 0', color: '#065f46', fontSize: '0.92rem', lineHeight: '1.6' }}>
+                          Felicitări! Cererea dumneavoastră de adopție pentru <strong>{req.animals.name}</strong> a fost aprobată definitiv de conducerea adăpostului. Noul membru al familiei vă așteaptă cu nerăbdare! Contactați adăpostul la <strong>{req.animals?.shelters?.phone}</strong> pentru a stabili preluarea.
+                        </p>
+                      </div>
+                    )}
+
+                    {req.status === 'rejected' && (
+                      <div style={{ marginTop: '1rem', background: '#fef2f2', padding: '1.25rem', borderRadius: '8px', border: '1px solid #fca5a5' }}>
+                        <p style={{ margin: '0', color: '#991b1b', fontWeight: 'bold', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          ✉️ Cerere Neaprobată
+                        </p>
+                        <p style={{ margin: '0.75rem 0 0 0', color: '#7f1d1d', fontSize: '0.92rem', lineHeight: '1.6' }}>
+                          Ne pare rău, dar cererea dumneavoastră de adopție pentru <strong>{req.animals.name}</strong> a fost declinată de adăpost. Vă încurajăm să nu vă pierdeți speranța și să vizitați restul animăluțelor din adăposturile noastre partenere care își caută încă o familie iubitoare.
                         </p>
                       </div>
                     )}

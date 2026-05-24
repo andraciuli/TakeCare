@@ -82,3 +82,15 @@
   color: var(--on-primary-container);
   text-decoration: none;
 }
+
+.notificationDot {
+  position: absolute;
+  top: -2px;
+  right: -8px;
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444; /* beautiful vibrant red */
+  border-radius: 50%;
+  border: 1.5px solid var(--surface, white);
+  box-shadow: 0 0 4px rgba(239, 68, 68, 0.4);
+}
