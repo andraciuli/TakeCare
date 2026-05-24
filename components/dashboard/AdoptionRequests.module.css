@@ -24,7 +24,7 @@
 /* Stats Grid */
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
 }
 
@@ -207,7 +207,15 @@
 .tagNew { background: #fce7f3; color: #db2777; }
 .tagReview { background: #f3f4f6; color: #4b5563; }
 .tagScheduled { background: #dcfce7; color: #16a34a; }
-.tagDeclined { background: #fee2e2; color: #dc2626; }
+.tagDeclined {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.tagGreen {
+  background: #dcfce7;
+  color: #16a34a;
+}
 
 /* Expanded Details */
 .expandedContent {

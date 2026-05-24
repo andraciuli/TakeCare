@@ -76,7 +76,7 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
       const { error } = await supabase
         .from('adoption_requests')
         .update({
-          status: 'approved',
+          // keep status as pending, but set visit_date
           visit_date: new Date(visitDate).toISOString(),
           visit_message: visitMessage,
           updated_at: new Date().toISOString(),
@@ -85,12 +85,12 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
 
       if (error) throw error
 
-      // Update animal status to pending or adopted
+      // Update animal status to pending
       const request = requests.find(r => r.id === selectedRequestId)
       if (request) {
         await supabase
           .from('animals')
-          .update({ status: 'adopted' })
+          .update({ status: 'pending' })
           .eq('id', request.animal_id)
       }
 
@@ -104,25 +104,47 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
     }
   }
 
-  // Filtering Logic
+  async function handleFinalApprove(requestId: string, animalId: string) {
+    try {
+      const { error } = await supabase
+        .from('adoption_requests')
+        .update({
+          status: 'approved',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', requestId)
+
+      if (error) throw error
+
+      const { error: animalError } = await supabase
+        .from('animals')
+        .update({ status: 'adopted' })
+        .eq('id', animalId)
+
+      if (animalError) throw animalError
+
+      await fetchRequests()
+    } catch (error: any) {
+      alert('Error finalizing adoption: ' + error.message)
+    }
+  }
+
   const filteredRequests = requests.filter(r => {
     if (activeFilter === 'All Status') return true;
-    if (activeFilter === 'New' && r.status === 'pending') return true;
-    if (activeFilter === 'Under Review' && r.status === 'under_review') return true;
-    if (activeFilter === 'Interview Scheduled' && r.status === 'approved') return true;
+    if (activeFilter === 'New' && r.status === 'pending' && !r.visit_date) return true;
+    if (activeFilter === 'Interview Scheduled' && r.status === 'pending' && r.visit_date) return true;
+    if (activeFilter === 'Approved' && r.status === 'approved') return true;
     if (activeFilter === 'Declined' && r.status === 'rejected') return true;
     return false;
   })
 
-  // Stats Logic
   const stats = {
-    new: requests.filter(r => r.status === 'pending').length,
-    underReview: requests.filter(r => r.status === 'under_review').length,
-    scheduled: requests.filter(r => r.status === 'approved').length,
+    new: requests.filter(r => r.status === 'pending' && !r.visit_date).length,
+    scheduled: requests.filter(r => r.status === 'pending' && r.visit_date).length,
     approved: requests.filter(r => r.status === 'approved' && new Date(r.updated_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length,
   }
 
-  const FILTERS = ['All Status', 'New', 'Under Review', 'Interview Scheduled', 'Approved', 'Declined'];
+  const FILTERS = ['All Status', 'New', 'Interview Scheduled', 'Approved', 'Declined'];
 
   if (loading) {
     return <div className={styles.loading}>Loading requests...</div>
@@ -139,10 +161,6 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
         <div className={`${styles.statCard} ${styles.bgPrimary}`}>
           <p className={styles.statLabel}>NEW REQUESTS</p>
           <p className={styles.statValue}>{stats.new.toString().padStart(2, '0')}</p>
-        </div>
-        <div className={`${styles.statCard} ${styles.bgWhite}`}>
-          <p className={styles.statLabelDark}>UNDER REVIEW</p>
-          <p className={styles.statValueDark}>{stats.underReview.toString().padStart(2, '0')}</p>
         </div>
         <div className={`${styles.statCard} ${styles.bgWhite}`}>
           <p className={styles.statLabelDark}>SCHEDULED</p>
@@ -186,8 +204,8 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
             // Status Map
             let tagClass = styles.tagNew;
             let tagLabel = 'NEW';
-            if (request.status === 'under_review') { tagClass = styles.tagReview; tagLabel = 'UNDER REVIEW'; }
-            else if (request.status === 'approved') { tagClass = styles.tagScheduled; tagLabel = 'INTERVIEW SCHEDULED'; }
+            if (request.status === 'pending' && request.visit_date) { tagClass = styles.tagScheduled; tagLabel = 'INTERVIEW SCHEDULED'; }
+            else if (request.status === 'approved') { tagClass = styles.tagGreen; tagLabel = 'APPROVED'; } // using green tag styling for approved
             else if (request.status === 'rejected') { tagClass = styles.tagDeclined; tagLabel = 'DECLINED'; }
 
             return (
@@ -245,13 +263,20 @@ export default function AdoptionRequests({ shelterId }: { shelterId: string }) {
                       )}
                     </div>
 
-                    {request.status === 'pending' && (
+                    {request.status === 'pending' && !request.visit_date && (
                       <div className={styles.actions}>
                         <button onClick={(e) => { e.stopPropagation(); handleReject(request.id) }} className={styles.rejectBtn}>
                           Decline Application
                         </button>
                         <button onClick={(e) => { e.stopPropagation(); openApproveModal(request.id) }} className={styles.approveBtn}>
                           Approve & Schedule
+                        </button>
+                      </div>
+                    )}
+                    {request.status === 'pending' && request.visit_date && (
+                      <div className={styles.actions}>
+                        <button onClick={(e) => { e.stopPropagation(); handleFinalApprove(request.id, request.animal_id) }} className={styles.approveBtn} style={{ width: '100%' }}>
+                          Finalize Adoption (Approved)
                         </button>
                       </div>
                     )}

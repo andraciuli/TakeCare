@@ -3,8 +3,31 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/AuthContext'
 import styles from './Navbar.module.css'
 
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
+
 export default function Navbar() {
   const { user, userRole, signOut, loading } = useAuth()
+  const [hasScheduledVisit, setHasScheduledVisit] = useState(false)
+
+  useEffect(() => {
+    if (user && userRole !== 'shelter_admin') {
+      const checkVisits = async () => {
+        const { data } = await supabase
+          .from('adoption_requests')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'approved')
+          .not('visit_date', 'is', null)
+          .limit(1)
+          
+        if (data && data.length > 0) {
+          setHasScheduledVisit(true)
+        }
+      }
+      checkVisits()
+    }
+  }, [user, userRole])
 
   return (
     <nav className={styles.nav}>
@@ -30,9 +53,23 @@ export default function Navbar() {
           Map
         </Link>
         {userRole !== 'shelter_admin' && (
-          <Link href="/favorites" className={styles.navLink}>
-            Favorites
-          </Link>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Link href="/profile" className={styles.navLink}>
+              Cererile mele
+            </Link>
+            {hasScheduledVisit && (
+              <span style={{ 
+                position: 'absolute', 
+                top: '0px', 
+                right: '-8px', 
+                width: '10px', 
+                height: '10px', 
+                backgroundColor: '#3b82f6', 
+                borderRadius: '50%',
+                border: '2px solid white'
+              }}></span>
+            )}
+          </div>
         )}
         {userRole === 'shelter_admin' && (
           <Link href="/dashboard" className={styles.navLink}>

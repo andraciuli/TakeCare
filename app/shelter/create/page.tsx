@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import styles from './create.module.css'
 
 export default function CreateShelterPage() {
-  const { user, userRole, refreshUserData } = useAuth()
+  const { user, userRole, refreshUserData, loading: authLoading } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,12 +24,20 @@ export default function CreateShelterPage() {
 
   // Redirect if not shelter admin
   useEffect(() => {
-    if (!user) {
-      router.push('/auth')
-    } else if (userRole && userRole !== 'shelter_admin') {
-      router.push('/')
+    if (!authLoading) {
+      if (!user) {
+        console.log("Redirecting to auth because user is null")
+        router.push('/auth')
+      } else if (userRole === 'adopter') {
+        console.log("Redirecting to home because userRole is adopter")
+        router.push('/')
+      }
     }
-  }, [user, userRole, router])
+  }, [user, userRole, authLoading, router])
+
+  if (authLoading) {
+    return <div style={{ padding: '5rem', textAlign: 'center' }}>Loading...</div>
+  }
 
   const handleChange = (e: any) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })

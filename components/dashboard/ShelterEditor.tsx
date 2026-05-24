@@ -14,7 +14,10 @@ export default function ShelterEditor({ shelterId }: { shelterId: string }) {
     email: '',
     schedule: '',
     instagram: '',
+    gallery_urls: [],
   })
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [previewUrls, setPreviewUrls] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -40,6 +43,7 @@ export default function ShelterEditor({ shelterId }: { shelterId: string }) {
         email: data.email || '',
         schedule: data.schedule || '',
         instagram: data.instagram || '',
+        gallery_urls: data.gallery_urls || [],
       })
     } catch (error: any) {
       setError(error.message)
@@ -52,11 +56,58 @@ export default function ShelterEditor({ shelterId }: { shelterId: string }) {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files)
+      setSelectedFiles([...selectedFiles, ...files])
+      const urls = files.map(file => URL.createObjectURL(file))
+      setPreviewUrls([...previewUrls, ...urls])
+    }
+  }
+
+  const removePreviewImage = (index: number) => {
+    const newFiles = selectedFiles.filter((_, i) => i !== index)
+    const newUrls = previewUrls.filter((_, i) => i !== index)
+    URL.revokeObjectURL(previewUrls[index])
+    setSelectedFiles(newFiles)
+    setPreviewUrls(newUrls)
+  }
+
+  const removeExistingImage = (index: number) => {
+    const updatedGallery = formData.gallery_urls.filter((_: any, i: number) => i !== index)
+    setFormData({ ...formData, gallery_urls: updatedGallery })
+  }
+
   async function handleSave() {
     setError(null)
     setSaving(true)
 
     try {
+      let newImageUrls: string[] = []
+      
+      if (selectedFiles.length > 0) {
+        const uploadPromises = selectedFiles.map(async (file) => {
+          const fileExt = file.name.split('.').pop()
+          const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
+          const filePath = `${fileName}`
+
+          const { data, error: uploadError } = await supabase.storage
+            .from('animal-images')
+            .upload(filePath, file)
+
+          if (uploadError) throw uploadError
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('animal-images')
+            .getPublicUrl(filePath)
+
+          return publicUrl
+        })
+        newImageUrls = await Promise.all(uploadPromises)
+      }
+
+      const updatedGalleryUrls = [...(formData.gallery_urls || []), ...newImageUrls]
+
       const { error } = await supabase
         .from('shelters')
         .update({
@@ -67,10 +118,16 @@ export default function ShelterEditor({ shelterId }: { shelterId: string }) {
           email: formData.email || null,
           schedule: formData.schedule || null,
           instagram: formData.instagram || null,
+          gallery_urls: updatedGalleryUrls,
         })
         .eq('id', shelterId)
 
       if (error) throw error
+      
+      previewUrls.forEach(url => URL.revokeObjectURL(url))
+      setSelectedFiles([])
+      setPreviewUrls([])
+
       await fetchShelter()
     } catch (err: any) {
       setError(err.message)
@@ -130,13 +187,38 @@ export default function ShelterEditor({ shelterId }: { shelterId: string }) {
           <h3 className={styles.sectionTitle}>
             <span className={styles.icon}>📸</span> Gallery Photos
           </h3>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileChange}
+            style={{ marginBottom: '1rem', width: '100%' }}
+          />
           <div className={styles.galleryGrid}>
-            <div className={styles.photoSlot}>
-              <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=200&h=200&fit=crop" alt="Gallery 1" />
-            </div>
-            <div className={styles.photoSlot}>
-              <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=200&h=200&fit=crop" alt="Gallery 2" />
-            </div>
+            {formData.gallery_urls?.map((url: string, index: number) => (
+              <div key={`existing-${index}`} className={styles.photoSlot} style={{ position: 'relative' }}>
+                <img src={url} alt={`Gallery ${index}`} />
+                <button 
+                  type="button"
+                  onClick={() => removeExistingImage(index)}
+                  style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(255, 0, 0, 0.8)', color: 'white', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer' }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {previewUrls.map((url, index) => (
+              <div key={`preview-${index}`} className={styles.photoSlot} style={{ position: 'relative' }}>
+                <img src={url} alt={`Preview ${index}`} />
+                <button 
+                  type="button"
+                  onClick={() => removePreviewImage(index)}
+                  style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(255, 0, 0, 0.8)', color: 'white', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer' }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -175,9 +257,8 @@ export default function ShelterEditor({ shelterId }: { shelterId: string }) {
             </div>
           </div>
           <div className={styles.inputGroup}>
-            <label>Instagram Handle</label>
+            <label>Instagram Handle / Website Link</label>
             <div className={styles.inputWithIcon}>
-              <span>📸</span>
               <input type="text" name="instagram" value={formData.instagram} onChange={handleChange} placeholder="@handle" />
             </div>
           </div>
@@ -191,7 +272,7 @@ export default function ShelterEditor({ shelterId }: { shelterId: string }) {
         </div>
         <div className={styles.previewCard}>
           <div className={styles.previewImage}>
-            <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=300&fit=crop" alt="Cover" />
+            <img src={formData.gallery_urls && formData.gallery_urls.length > 0 ? formData.gallery_urls[0] : "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=300&fit=crop"} alt="Cover" />
             <div className={styles.previewOverlay}>
               <h4>{formData.name || 'Shelter Name'}</h4>
               <p>📍 {formData.address || 'Location'}</p>
@@ -201,10 +282,25 @@ export default function ShelterEditor({ shelterId }: { shelterId: string }) {
             <div className={styles.previewMission}>
               <h5>Our Mission</h5>
               <p>"{formData.description || 'Our mission is to bridge the gap between abandoned souls and loving families through education, patience, and warmth.'}"</p>
+              
+              <div style={{ marginTop: '1rem', display: 'flex', gap: '2rem' }}>
+                {formData.schedule && (
+                  <div>
+                    <h6 style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.25rem', fontFamily: 'var(--font-quicksand)' }}>🕒 Operating Hours</h6>
+                    <p style={{ fontSize: '0.9rem' }}>{formData.schedule}</p>
+                  </div>
+                )}
+                {formData.instagram && (
+                  <div>
+                    <h6 style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.25rem', fontFamily: 'var(--font-quicksand)' }}>🌐 Social / Website</h6>
+                    <p style={{ fontSize: '0.9rem' }}>{formData.instagram}</p>
+                  </div>
+                )}
+              </div>
             </div>
             <div className={styles.previewActions}>
-              <div className={styles.previewActionItem}>✉️ Email Us</div>
-              <div className={styles.previewActionItem}>📞 Call Now</div>
+              {formData.email && <div className={styles.previewActionItem}>✉️ {formData.email}</div>}
+              {formData.phone && <div className={styles.previewActionItem}>📞 {formData.phone}</div>}
               <button className={styles.previewButton}>View Animals</button>
             </div>
           </div>

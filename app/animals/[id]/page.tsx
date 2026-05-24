@@ -376,9 +376,12 @@ export default function AnimalDetailsPage() {
                 <button 
                   className={styles.adoptButton}
                   onClick={handleRequestAdoption}
-                  disabled={requestStatus === 'pending'}
+                  disabled={requestStatus === 'pending' || animal.status === 'adopted'}
+                  style={animal.status === 'adopted' ? { background: '#9ca3af', cursor: 'not-allowed' } : {}}
                 >
-                  {requestStatus === 'pending'
+                  {animal.status === 'adopted'
+                    ? 'Deja Adoptat'
+                    : requestStatus === 'pending'
                     ? 'Cerere în Așteptare'
                     : requestStatus === 'rejected'
                     ? 'Încearcă din nou'

@@ -56,7 +56,7 @@ export default function AnimalsPage() {
         let query = supabase
           .from('animals')
           .select(`*, shelters(id, name, address, phone)`)
-          .eq('status', 'available')
+          .in('status', ['available', 'pending'])
 
         if (debouncedSearch.trim() !== '') {
           query = query.or(`name.ilike.%${debouncedSearch}%,breed.ilike.%${debouncedSearch}%`)

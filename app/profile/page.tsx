@@ -435,6 +435,9 @@ export default function ProfilePage() {
                           <p style={{ margin: '0.5rem 0 0 0', color: '#065f46', fontSize: '0.9rem' }}>Mesaj: {req.visit_message}</p>
                         )}
                         <p style={{ margin: '0.5rem 0 0 0', color: '#065f46', fontSize: '0.9rem' }}>Adresă: {req.animals?.shelters?.address} | Tel: {req.animals?.shelters?.phone}</p>
+                        <p style={{ margin: '0.5rem 0 0 0', color: '#047857', fontSize: '0.9rem', fontWeight: '500' }}>
+                          * Pentru a reprograma vizita, vă rugăm să sunați la adăpost.
+                        </p>
                       </div>
                     )}
                   </div>

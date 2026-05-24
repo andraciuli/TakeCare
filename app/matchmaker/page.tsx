@@ -86,7 +86,7 @@ export default function MatchmakerPage() {
         const { data, error } = await supabase
           .from('animals')
           .select(`*, shelters(id, name, address, phone)`)
-          .eq('status', 'available');
+          .in('status', ['available', 'pending']);
           
         if (error) throw error;
         setAnimals(data || []);

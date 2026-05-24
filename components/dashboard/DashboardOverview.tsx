@@ -2,12 +2,26 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import styles from './DashboardOverview.module.css'
-import Image from 'next/image'
 import Link from 'next/link'
 
 export default function DashboardOverview({ shelterId }: { shelterId: string }) {
   const [stats, setStats] = useState({ animals: 0, pending: 0, matches: 0 })
-  const [recentAnimals, setRecentAnimals] = useState<any[]>([])
+  const [trendData, setTrendData] = useState<{ month: string; percentage: number }[]>([])
+  const [priorities, setPriorities] = useState<{ id: number; text: string; urgent: boolean }[]>([])
+  const [newPriorityText, setNewPriorityText] = useState('')
+
+  useEffect(() => {
+    // Load priorities from local storage
+    const savedPriorities = localStorage.getItem(`priorities_${shelterId}`)
+    if (savedPriorities) {
+      setPriorities(JSON.parse(savedPriorities))
+    } else {
+      setPriorities([
+        { id: 1, text: 'Review 3 new dog applications', urgent: false },
+        { id: 2, text: 'Bella needs vaccination update', urgent: true }
+      ])
+    }
+  }, [shelterId])
 
   useEffect(() => {
     async function fetchOverview() {
@@ -19,30 +33,69 @@ export default function DashboardOverview({ shelterId }: { shelterId: string }) 
         .select('*', { count: 'exact', head: true })
         .eq('shelter_id', shelterId)
 
-      // Recent animals
-      const { data: recent } = await supabase
-        .from('animals')
-        .select('*')
-        .eq('shelter_id', shelterId)
-        .order('created_at', { ascending: false })
-        .limit(4)
-
-      // Pending requests
-      const { count: pendingCount } = await supabase
-        .from('adoption_applications')
-        .select('*, animals!inner(shelter_id)', { count: 'exact', head: true })
+      // Adoption requests (scheduled interviews = pending with visit_date, completed = approved)
+      const { data: requests } = await supabase
+        .from('adoption_requests')
+        .select('*, animals!inner(shelter_id)')
         .eq('animals.shelter_id', shelterId)
-        .eq('status', 'pending')
+        .in('status', ['pending', 'approved'])
+
+      const allRequests = requests || []
+      const scheduledRequests = allRequests.filter(r => r.status === 'pending' && r.visit_date)
+      const approvedRequests = allRequests.filter(r => r.status === 'approved')
+
+      // Calculate matches this month
+      const currentMonth = new Date().getMonth()
+      const currentYear = new Date().getFullYear()
+      const matchesThisMonth = approvedRequests.filter(req => {
+        const d = new Date(req.updated_at)
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear
+      }).length
 
       setStats({
         animals: animalCount || 0,
-        pending: pendingCount || 0,
-        matches: 54 // Mock data for now based on mockup
+        pending: scheduledRequests.length, // Scheduled interviews
+        matches: matchesThisMonth
       })
-      setRecentAnimals(recent || [])
+
+      // Calculate trends for last 6 months
+      const months: string[] = []
+      const counts: number[] = []
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date()
+        d.setMonth(d.getMonth() - i)
+        months.push(d.toLocaleString('en-US', { month: 'short' }))
+        counts.push(
+          approvedRequests.filter(req => {
+            const rd = new Date(req.updated_at)
+            return rd.getMonth() === d.getMonth() && rd.getFullYear() === d.getFullYear()
+          }).length
+        )
+      }
+      const maxCount = Math.max(...counts, 1) // prevent division by zero
+      const trends = months.map((m, i) => ({
+        month: m,
+        percentage: (counts[i] / maxCount) * 100
+      }))
+      setTrendData(trends)
     }
     fetchOverview()
   }, [shelterId])
+
+  const addPriority = () => {
+    if (!newPriorityText.trim()) return
+    const newPri = { id: Date.now(), text: newPriorityText, urgent: false }
+    const updated = [...priorities, newPri]
+    setPriorities(updated)
+    setNewPriorityText('')
+    localStorage.setItem(`priorities_${shelterId}`, JSON.stringify(updated))
+  }
+
+  const removePriority = (id: number) => {
+    const updated = priorities.filter(p => p.id !== id)
+    setPriorities(updated)
+    localStorage.setItem(`priorities_${shelterId}`, JSON.stringify(updated))
+  }
 
   return (
     <div className={styles.container}>
@@ -50,9 +103,6 @@ export default function DashboardOverview({ shelterId }: { shelterId: string }) 
         <div>
           <h1 className={styles.title}>Shelter Dashboard</h1>
           <p className={styles.subtitle}>Welcome back, shelter manager.</p>
-        </div>
-        <div className={styles.actions}>
-          <Link href="/dashboard/animals/add" className={styles.primaryBtn}>+ Add New Animal</Link>
         </div>
       </div>
 
@@ -72,7 +122,6 @@ export default function DashboardOverview({ shelterId }: { shelterId: string }) 
             <p className={styles.statLabel}>Pending Adoptions</p>
             <p className={styles.statValue}>{stats.pending}</p>
           </div>
-          <div className={styles.trendLabel}>Current month</div>
         </div>
         <div className={styles.statCard}>
           <div className={`${styles.iconWrapper} ${styles.green}`}>💖</div>
@@ -80,7 +129,6 @@ export default function DashboardOverview({ shelterId }: { shelterId: string }) 
             <p className={styles.statLabel}>Matches This Month</p>
             <p className={styles.statValue}>{stats.matches}</p>
           </div>
-          <div className={styles.trendUp}>+12% ↗</div>
         </div>
       </div>
 
@@ -94,70 +142,63 @@ export default function DashboardOverview({ shelterId }: { shelterId: string }) 
             </select>
           </div>
           <div className={styles.mockChart}>
-            {/* Simple CSS bar chart mock */}
-            <div className={styles.bar} style={{ height: '40%' }}><span>Jan</span></div>
-            <div className={styles.bar} style={{ height: '55%' }}><span>Feb</span></div>
-            <div className={styles.bar} style={{ height: '45%' }}><span>Mar</span></div>
-            <div className={styles.bar} style={{ height: '70%' }}><span>Apr</span></div>
-            <div className={styles.bar} style={{ height: '65%' }}><span>May</span></div>
-            <div className={`${styles.bar} ${styles.barActive}`} style={{ height: '90%' }}><span>Jun</span></div>
+            {trendData.map((d, i) => (
+              <div 
+                key={i} 
+                className={`${styles.bar} ${i === trendData.length - 1 ? styles.barActive : ''}`} 
+                style={{ height: `${Math.max(d.percentage, 5)}%` }}
+              >
+                <span>{d.month}</span>
+              </div>
+            ))}
           </div>
         </div>
 
         <div className={styles.rightColumn}>
-          <div className={styles.capacityCard}>
-            <div>
-              <h3>Shelter Capacity</h3>
-              <p>84% Filled - Consider outreach.</p>
-            </div>
-            <div className={styles.capacityIcon}>📊</div>
-          </div>
-
-          <div className={styles.prioritiesCard}>
+          <div className={styles.prioritiesCard} style={{ flex: 1 }}>
             <p className={styles.prioritiesTitle}>TOP SHELTER PRIORITIES</p>
-            <div className={styles.priorityItem}>
-              <span className={styles.priorityIconRed}>🏥</span>
-              <span className={styles.priorityText}>Bella needs vaccination update</span>
-              <span className={styles.tagUrgent}>Urgent</span>
+            
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <input 
+                type="text" 
+                value={newPriorityText}
+                onChange={e => setNewPriorityText(e.target.value)}
+                placeholder="Add new priority..."
+                style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                onKeyDown={e => e.key === 'Enter' && addPriority()}
+              />
+              <button 
+                onClick={addPriority}
+                style={{ padding: '0.5rem 1rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                Add
+              </button>
             </div>
-            <div className={styles.priorityItem}>
-              <span className={styles.priorityIconBlue}>📄</span>
-              <span className={styles.priorityText}>Review 3 new dog applications</span>
-              <span className={styles.tagNew}>New</span>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {priorities.map(p => (
+                <div key={p.id} className={styles.priorityItem} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span className={p.urgent ? styles.priorityIconRed : styles.priorityIconBlue}>
+                      {p.urgent ? '🏥' : '📄'}
+                    </span>
+                    <span className={styles.priorityText}>{p.text}</span>
+                    {p.urgent && <span className={styles.tagUrgent}>Urgent</span>}
+                  </div>
+                  <button 
+                    onClick={() => removePriority(p.id)}
+                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}
+                    title="Remove priority"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              {priorities.length === 0 && (
+                <p style={{ color: '#6b7280', fontSize: '0.9rem', textAlign: 'center', margin: '1rem 0' }}>No priorities added.</p>
+              )}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Recently Added */}
-      <div className={styles.recentlyAdded}>
-        <div className={styles.recentHeader}>
-          <h3>Recently Added Animals</h3>
-        </div>
-        
-        <div className={styles.galleryGrid}>
-          {recentAnimals.map(animal => (
-            <div key={animal.id} className={styles.animalCard}>
-              <div className={styles.imageContainer}>
-                {animal.images && animal.images.length > 0 ? (
-                  <img src={animal.images[0]} alt={animal.name} className={styles.animalImage} />
-                ) : (
-                  <div className={styles.placeholderImage}>No Image</div>
-                )}
-                {animal.status === 'available' && <span className={styles.statusTag}>New Arrival</span>}
-              </div>
-              <div className={styles.cardContent}>
-                <h4>{animal.name}</h4>
-                <div className={styles.tags}>
-                  <span className={styles.pill}>{animal.breed}</span>
-                  <span className={styles.pill}>{animal.age}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-          {recentAnimals.length === 0 && (
-            <p style={{ color: 'var(--on-surface-variant)' }}>No animals added yet.</p>
-          )}
         </div>
       </div>
     </div>

@@ -72,16 +72,10 @@ export default function ShelterPage() {
         <div className={styles.previewCard}>
           <div className={styles.previewImage}>
             {/* Fallback to a nice Unsplash image if no specific cover image exists */}
-            <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1200&h=400&fit=crop" alt="Cover" />
+            <img src={shelter.gallery_urls && shelter.gallery_urls.length > 0 ? shelter.gallery_urls[0] : "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1200&h=400&fit=crop"} alt="Cover" />
             <div className={styles.previewOverlay}>
               <h1 className={styles.title}>{shelter.name}</h1>
               <p className={styles.address}>📍 {shelter.address}</p>
-              
-              {shelter.instagram && (
-                <a href={shelter.instagram.startsWith('http') ? shelter.instagram : `https://instagram.com/${shelter.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" className={styles.socialLink}>
-                  📸 {shelter.instagram}
-                </a>
-              )}
             </div>
           </div>
           
@@ -97,18 +91,26 @@ export default function ShelterPage() {
                     <p>{shelter.schedule}</p>
                   </div>
                 )}
+                {shelter.instagram && (
+                  <div>
+                    <h6>🌐 Social / Website</h6>
+                    <a href={shelter.instagram.startsWith('http') ? shelter.instagram : `https://instagram.com/${shelter.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" className={styles.socialLink}>
+                      {shelter.instagram}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
             
             <div className={styles.previewActions}>
               {shelter.email && (
                 <a href={`mailto:${shelter.email}`} className={styles.previewActionItem}>
-                  <span>✉️</span> Email Us
+                  <span>✉️</span> {shelter.email}
                 </a>
               )}
               {shelter.phone && (
                 <a href={`tel:${shelter.phone}`} className={styles.previewActionItem}>
-                  <span>📞</span> Call Now
+                  <span>📞</span> {shelter.phone}
                 </a>
               )}
               <a href="#animals" className={styles.previewButton}>View Animals</a>
