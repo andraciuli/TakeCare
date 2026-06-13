@@ -297,6 +297,194 @@ export default function MapPage() {
         viewRef.current = view
 
         await view.when()
+        // helper to clear route
+        function clearRoute() {
+          try {
+            routeLayer.removeAll()
+          } catch (e) {
+            /* noop */
+          }
+          // clear route info shown in header
+          try { setRouteInfo(null) } catch (e) { /* noop */ }
+          try {
+            // restore user's location marker if it was removed
+            if (addUserGraphic) addUserGraphic()
+          } catch (e) {
+            /* noop */
+          }
+        }
+
+        // Solve route using ArcGIS REST Route service
+        async function solveRouteToShelter(shelterAttrs: any) {
+          if (!userLocation) {
+            alert('User location is required to compute a route. Please allow location access.')
+            return
+          }
+
+          // clear any previous route
+          clearRoute()
+
+          const stops = `${userLocation.longitude},${userLocation.latitude};${shelterAttrs.longitude},${shelterAttrs.latitude}`
+          const apiKey = (Config && (Config as any).apiKey) || process.env.NEXT_PUBLIC_ARCGIS_API_KEY
+          const url = `https://route.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World/solve?f=json&stops=${encodeURIComponent(stops)}&returnRoutes=true&returnDirections=false&directionsLengthUnits=esriSRUnit_Kilometer&apiKey=${encodeURIComponent(apiKey)}`
+
+          try {
+            const resp = await fetch(url)
+            const data = await resp.json()
+
+            // Debug: log raw response for diagnostics
+            console.debug('Route service response', data)
+
+            const routeFeature = data?.routes?.features?.[0]
+
+            if (!routeFeature) {
+              // If the route service returns no route, show the server message (if any) and fall back to a straight-line route
+              console.warn('No route found in ArcGIS response', data)
+              // update route info state to indicate fallback attempt
+              setRouteInfo({ provider: 'ArcGIS', name: shelterAttrs.name, note: 'Falling back to OSRM/estimate' })
+
+              // Try a public OSRM routing service as a fallback to get a road-following route
+              try {
+                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${userLocation.longitude},${userLocation.latitude};${shelterAttrs.longitude},${shelterAttrs.latitude}?overview=full&geometries=geojson`;
+                const osrmResp = await fetch(osrmUrl);
+                const osrmData = await osrmResp.json();
+                console.debug('OSRM response', osrmData)
+
+                const osrmRoute = osrmData?.routes?.[0]
+                if (osrmRoute && osrmRoute.geometry && osrmRoute.geometry.coordinates) {
+                  const coords = osrmRoute.geometry.coordinates // array of [lon, lat]
+                  const polylineGeomOSRM = {
+                    type: 'polyline',
+                    paths: [coords],
+                    spatialReference: { wkid: 4326 }
+                  }
+
+                  const routeGraphicOSRM = new Graphic({
+                    geometry: polylineGeomOSRM as any,
+                    symbol: {
+                      type: 'simple-line',
+                      color: [3, 102, 214],
+                      width: 5,
+                      style: 'solid'
+                    } as any
+                  })
+
+                  routeLayer.removeAll()
+                  routeLayer.add(routeGraphicOSRM)
+
+                  const distKm = (osrmRoute.distance || 0) / 1000
+                  const durationMin = (osrmRoute.duration || 0) / 60
+                  const kmStr = distKm >= 1 ? distKm.toFixed(1) + ' km' : (distKm * 1000).toFixed(0) + ' m'
+                  const durationStr = durationMin >= 60 ? Math.round(durationMin / 60) + ' hr' : Math.round(durationMin) + ' min'
+
+                  setRouteInfo({ provider: 'OSRM', name: shelterAttrs.name, distanceKm: distKm, durationMin: durationMin })
+
+                  try { await view.goTo(routeGraphicOSRM.geometry, { animate: true, duration: 500 }) } catch(e) {}
+                  return
+                }
+              } catch (osrmErr) {
+                console.warn('OSRM fallback failed', osrmErr)
+              }
+
+              // final fallback: draw straight polyline between user and shelter
+              const straightLine = {
+                type: 'polyline',
+                paths: [[[userLocation.longitude, userLocation.latitude], [shelterAttrs.longitude, shelterAttrs.latitude]]],
+                spatialReference: { wkid: 4326 }
+              }
+
+              const fallbackGraphic = new Graphic({
+                geometry: straightLine as any,
+                symbol: {
+                  type: 'simple-line',
+                  color: [199, 210, 254],
+                  width: 4,
+                  style: 'dash'
+                } as any
+              })
+
+              routeLayer.removeAll()
+              routeLayer.add(fallbackGraphic)
+
+              // compute distance/duration from haversine
+              const distKm = getDistance(userLocation.latitude, userLocation.longitude, shelterAttrs.latitude, shelterAttrs.longitude)
+              const durationMin = (distKm / 50) * 60
+              const kmStr = distKm >= 1 ? distKm.toFixed(1) + ' km' : (distKm * 1000).toFixed(0) + ' m'
+              const durationStr = durationMin >= 60 ? Math.round(durationMin / 60) + ' hr' : Math.round(durationMin) + ' min'
+              // update route info with estimate
+              setRouteInfo({ provider: 'estimate', name: shelterAttrs.name, distanceKm: distKm, durationMin: durationMin })
+
+              try { await view.goTo(fallbackGraphic.geometry, { animate: true, duration: 500 }) } catch(e) {}
+              return
+            }
+
+            const paths = routeFeature.geometry?.paths
+            if (!paths) throw new Error('No geometry in route result')
+
+            const polylineGeom = {
+              type: 'polyline',
+              paths: paths,
+              spatialReference: { wkid: 4326 }
+            }
+
+            const routeGraphic = new Graphic({
+              geometry: polylineGeom as any,
+              symbol: {
+                type: 'simple-line',
+                color: [3, 102, 214],
+                width: 5,
+                style: 'solid'
+              } as any
+            })
+
+            routeLayer.removeAll()
+            routeLayer.add(routeGraphic)
+
+            // Compute distance (km) from geometry if attributes not present
+            let distanceKm: number | null = null
+            let durationMin: number | null = null
+
+            const attrs = routeFeature.attributes || {}
+            // Try common attributes names, otherwise compute from geometry
+            distanceKm = attrs.Total_Kilometers || attrs.Total_Miles ? (attrs.Total_Kilometers ?? (attrs.Total_Miles ? attrs.Total_Miles * 1.60934 : null)) : null
+            durationMin = attrs.Total_Minutes || attrs.Total_Minutes_ || attrs.Total_TravelTime || attrs.Total_TravelTime_Minutes || null
+
+            if (!distanceKm) {
+              // compute from paths coordinates (sum haversine)
+              let total = 0
+              for (const singlePath of paths) {
+                for (let i = 1; i < singlePath.length; i++) {
+                  const [x1, y1] = singlePath[i - 1]
+                  const [x2, y2] = singlePath[i]
+                  total += getDistance(y1, x1, y2, x2)
+                }
+              }
+              distanceKm = total
+            }
+
+            if (!durationMin) {
+              // fallback: assume avg speed 50 km/h
+              durationMin = (distanceKm / 50) * 60
+            }
+
+            // Update route info from ArcGIS result
+            const kmStr = distanceKm >= 1 ? distanceKm.toFixed(1) + ' km' : (distanceKm * 1000).toFixed(0) + ' m'
+            const durationStr = durationMin >= 60 ? Math.round(durationMin / 60) + ' hr' : Math.round(durationMin) + ' min'
+            setRouteInfo({ provider: 'ArcGIS', name: shelterAttrs.name, distanceKm: distanceKm, durationMin: durationMin })
+
+            // zoom to route extent
+            try {
+              await view.goTo(routeGraphic.geometry, { animate: true, duration: 500 })
+            } catch (e) {
+              // ignore
+            }
+
+          } catch (err: any) {
+            console.error('Route solve error', err)
+            alert('Could not compute route: ' + (err.message || err))
+          }
+        }
+
         // expose clearRoute on the view so header/button can call it
         try {
           ;(view as any).clearRoute = clearRoute
@@ -305,7 +493,7 @@ export default function MapPage() {
         }
         console.log(`ArcGIS map loaded. View: ${showAllShelters ? 'All' : 'Filtered'}`);
 
-  // Add shelter markers based on current list (filtered or all)
+        // Add shelter markers based on current list (filtered or all)
         sheltersToDisplay.forEach(shelter => {
           const point = new Point({
             longitude: shelter.longitude,
@@ -327,15 +515,40 @@ export default function MapPage() {
             attributes: shelter,
             popupTemplate: {
               title: '{name}',
-              content: `
-                <div style="padding: 10px;">
-                  <p><strong>Address:</strong> {address}</p>
-                  <p><strong>Phone:</strong> {phone}</p>
-                  <p><strong>Email:</strong> {email}</p>
-                  <p><strong>Schedule:</strong> {schedule}</p>
-                  <p style="margin-top: 10px;">{description}</p>
-                </div>
-              `
+              content: (feature: any) => {
+                const s = feature.graphic.attributes
+                const div = document.createElement('div')
+                div.style.padding = '10px'
+                div.style.fontFamily = 'sans-serif'
+                div.innerHTML = `
+                  <p style="margin: 4px 0;"><strong>Address:</strong> ${s.address || ''}</p>
+                  <p style="margin: 4px 0;"><strong>Phone:</strong> ${s.phone || ''}</p>
+                  <p style="margin: 4px 0;"><strong>Email:</strong> ${s.email || ''}</p>
+                  <p style="margin: 4px 0;"><strong>Schedule:</strong> ${s.schedule || ''}</p>
+                  <p style="margin-top: 10px; font-style: italic;">${s.description || ''}</p>
+                `
+                const btn = document.createElement('button')
+                btn.innerText = 'Vezi Adăpostul'
+                btn.style.display = 'block'
+                btn.style.width = '100%'
+                btn.style.marginTop = '15px'
+                btn.style.padding = '10px'
+                btn.style.backgroundColor = '#0070f3'
+                btn.style.color = 'white'
+                btn.style.textAlign = 'center'
+                btn.style.borderRadius = '6px'
+                btn.style.border = 'none'
+                btn.style.fontWeight = 'bold'
+                btn.style.cursor = 'pointer'
+                btn.style.fontSize = '14px'
+                btn.addEventListener('click', (e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  router.push(`/shelter/${s.id}`)
+                })
+                div.appendChild(btn)
+                return div
+              }
             }
           })
 
@@ -349,8 +562,8 @@ export default function MapPage() {
             const result = hit.results.find((r: any) => (r as any).graphic && (r as any).graphic.layer === graphicsLayer)
             if (result && (result as any).graphic && (result as any).graphic.attributes) {
               const shelterAttrs = (result as any).graphic.attributes
-              // redirect to shelter page
-              router.push(`/shelter/${shelterAttrs.id}`)
+              // call route solver
+              await solveRouteToShelter(shelterAttrs)
             }
           } catch (e) {
             console.error('Hit test error', e)
